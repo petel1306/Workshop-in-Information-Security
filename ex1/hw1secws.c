@@ -8,7 +8,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Ori Petel");
 
-// Allocating 3 structs to hold different hook_ops
+// Allocating 3 structs in heap to hold different hook_ops
 static struct nf_hook_ops nf_input_op;
 static struct nf_hook_ops nf_forward_op;
 static struct nf_hook_ops nf_output_op;
@@ -28,6 +28,10 @@ static unsigned int my_hook_func(void *priv, struct sk_buff *skb, const struct n
         case NF_INET_FORWARD:
             printk(KERN_INFO "*** Packet Dropped ***\n");
             return NF_DROP;
+
+        default:
+            printk(KERN_INFO "Should not reach here\n");
+            return NF_ACCEPT;
     }
 }
 
@@ -35,7 +39,7 @@ static unsigned int my_hook_func(void *priv, struct sk_buff *skb, const struct n
  * Set the required fields of nf_hook_ops,
  * and register netfilter hook to the desirable hook point <hook_num>
  */
-static int set_nf_hook( nf_hook_ops *my_op, nf_inet_hooks hook_num) {
+static int set_nf_hook( struct nf_hook_ops *my_op, enum nf_inet_hooks hook_num) {
     int reg_error;
     // Initialize netfilter hook - this piece of code was taken from:
     // https://medium.com/bugbountywriteup/linux-kernel-communication-part-1-netfilter-hooks-15c07a5a5c4e
@@ -49,8 +53,6 @@ static int set_nf_hook( nf_hook_ops *my_op, nf_inet_hooks hook_num) {
 }
 
 static int __init hw1secws_init(void) {
-	printk(KERN_INFO "Hello World!\n");
-
     // Register hooks at input, forward, output points
     if (set_nf_hook(&nf_input_op, NF_INET_LOCAL_IN) != 0)
 	{
@@ -83,7 +85,6 @@ static void __exit hw1secws_exit(void) {
     nf_unregister_net_hook(&init_net, &nf_input_op);
     nf_unregister_net_hook(&init_net, &nf_forward_op);
     nf_unregister_net_hook(&init_net, &nf_output_op);
-	printk(KERN_INFO "Goodbye World!\n");
 }
 
 module_init(hw1secws_init);
