@@ -12,6 +12,7 @@ MODULE_AUTHOR("Ori Petel");
 
 #define DEVICE_NAME "NF_stats"
 #define SYSFS_CLASS_NAME "Top_Class"
+#define UINT_SIZE sizeof(unsigned int)
 
 // Allocating 3 structs to hold different hook_ops
 static struct nf_hook_ops nf_input_op;
@@ -33,13 +34,11 @@ ssize_t display_stats(struct device *dev, struct device_attribute *attr, char *b
     // return scnprintf(buf, PAGE_SIZE, "%u,%u\n", accept_cnt, drop_cnt);
     // *** I could write the line above, but I chose a resource-efficient option! ***
 
-    unsigned int uint_size = sizeof(unsigned int);
-
     // Hardcoding the counter uint bits into string
-    memcpy(buf, (char *)&accept_cnt, uint_size);
-    memcpy(buf + uint_size, (char *)&drop_cnt, uint_size);
+    memcpy(buf, (char *)&accept_cnt, UINT_SIZE);
+    memcpy(buf + uint_size, (char *)&drop_cnt, UINT_SIZE);
 
-    return uint_size << 1; // return 2 * uint_size
+    return UINT_SIZE << 1; // return 2 * uint_size
 }
 
 ssize_t reset_stats(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) //sysfs store implementation
@@ -127,12 +126,12 @@ static int __init hw1secws_init(void)
     sysfs_class = class_create(THIS_MODULE, SYSFS_CLASS_NAME);
     if (IS_ERR(sysfs_class))
     {
-        goto failed_sysfs_class
+        goto failed_sysfs_class;
     }
 
     //create sysfs device
-    sysfs_device = device_create(sysfs_class, NULL, MKDEV(major_number, 0), NULL, DEVICE_NAME
-                                 "_" SYSFS_CLASS_NAME);
+    sysfs_device = device_create(sysfs_class, NULL, MKDEV(major_number, 0), NULL, SYSFS_CLASS_NAME
+                                 "_" DEVICE_NAME);
     if (IS_ERR(sysfs_device))
     {
         goto failed_sysfs_device;
