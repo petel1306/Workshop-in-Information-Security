@@ -36,7 +36,7 @@ ssize_t display_stats(struct device *dev, struct device_attribute *attr, char *b
 
     // Hardcoding the counter uint bits into string
     memcpy(buf, (char *)&accept_cnt, UINT_SIZE);
-    memcpy(buf + uint_size, (char *)&drop_cnt, UINT_SIZE);
+    memcpy(buf + UINT_SIZE, (char *)&drop_cnt, UINT_SIZE);
 
     return UINT_SIZE << 1; // return 2 * uint_size
 }
