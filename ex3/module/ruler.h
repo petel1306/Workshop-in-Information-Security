@@ -5,6 +5,6 @@
 
 rule_t *get_rules();
 
-unsigned int get_rule_ammount();
+__u8 get_rules_ammount();
 
 #endif

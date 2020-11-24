@@ -1,17 +1,17 @@
 /*
-In this module the packet ruling is done.
+In this module is responsible for rules logic & maintaining.
 */
 #include "ruler.h"
 
 // Aloccating array to hold the rules.
 static rule_t[MAX_RULES] rule_table;
-static unsigned int rule_ammount;
+static __u8 rules_ammount;
 
 rule_t *get_rules()
 {
     return rule_table;
 }
 
-unsigned int get_rule_ammount() {
-    return rule_ammount;
+__u8 get_rules_ammount() {
+    return rules_ammount;
 }

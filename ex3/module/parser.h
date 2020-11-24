@@ -1,12 +1,12 @@
 /*
-In this module the socket buffer (packet) is being parsed.
+In this module we parse a socket buffer (packet).
 */
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
 #include "fw.h"
 
-// classifies packet type
+// Classifies packet's type
 typedef enum {
 	PACKET_REG,
 	PACKET_LOOPBACK,
@@ -14,8 +14,8 @@ typedef enum {
 	PACKET_XMAS,
 } packet_type_t;
 
-// Holds packet fields.
-// The fields are maintained in host order.
+// Holds packet's fields.
+// The fields are stored in host order form.
 typedef struct
 {
 	direction_t direction;

@@ -7,18 +7,18 @@ In this module the socket buffer (packet) is being parsed.
 static packet_t packet;
 static const packet_t empty_packet;
 
-const __be32 LOOPBACK_SUBNET = 0x7F000000;
-const __be32 LOOPBACK_MASK = 0xFFFFFF00;
+const __be32 LOOPBACK_PREFIX    =   0x7F000000;
+const __be32 LOOPBACK_MASK      =   0xFFFFFF00;
 
 inline __be32 is_loopback(__be32 address)
 {
-    return (address & LOOPBACK_MASK) == LOOPBACK_SUBNET;
+    return (address & LOOPBACK_MASK) == LOOPBACK_PREFIX;
 }
 
-direction_t get_direction(nf_hook_state *state)
+direction_t get_direction(const nf_hook_state *state)
 {
     char *net_in = state->in->name;
-    char *net_out = state->in->name;
+    char *net_out = state->out->name;
     if (strcmp(net_in, IN_NET_DEVICE_NAME) && strcmp(net_out, OUT_NET_DEVICE_NAME))
     {
         return DIRECTION_OUT; // Coming from inside to outside = direction out
@@ -86,8 +86,8 @@ packet_t *parse_packet(const struct sk_buff *skb, const struct nf_hook_state *st
     {
         // Get UDP port fields
         struct udphdr *packet_udp_header = udp_hdr(skb);
-        packet.src_port = ntohs(packet_udp_header.source);
-        packet.dst_port = ntohs(packet_udp_header.dest);
+        packet.src_port = ntohs(packet_udp_header->source);
+        packet.dst_port = ntohs(packet_udp_header->dest);
         break;
     }
 
@@ -97,5 +97,5 @@ packet_t *parse_packet(const struct sk_buff *skb, const struct nf_hook_state *st
         break;
     }
 
-    return packet;
+    return &packet;
 }

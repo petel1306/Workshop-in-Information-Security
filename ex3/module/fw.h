@@ -38,8 +38,9 @@ typedef enum {
 
 // auxiliary values, for your convenience
 #define IP_VERSION (4)
+#define IP_ANY_PREFIX (0) // A prefix size that used to indicate, the rule allows any IP address
 #define PORT_ANY (0)
-#define PORT_ABOVE_1023 (1023)
+#define PORT_ABOVE_1023 (1024)
 #define MAX_RULES (50)
 
 // device minor numbers, for your convenience
