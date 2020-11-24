@@ -1,3 +1,6 @@
+/*
+In this module the socket buffer (packet) is being parsed.
+*/
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
@@ -25,6 +28,6 @@ typedef struct
 	packet_type_t type;
 } packet_t;
 
-void parse_packet(const struct sk_buff *skb, const struct nf_hook_state *state, packet_t *packet);
+packet_t *parse_packet(const struct sk_buff *skb, const struct nf_hook_state *state);
 
 #endif

@@ -1,5 +1,5 @@
 /*
-In this module the packet filtering is done.
+In this module the socket buffer (packet) is being parsed.
 */
 #include "parser.h"
 
