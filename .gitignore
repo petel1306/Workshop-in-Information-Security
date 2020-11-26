@@ -51,5 +51,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# VScode files
-.vscode/
+# VScode junk
+.cache/
+.tmp_versions
+
+# Make junk
+.cache.mk
