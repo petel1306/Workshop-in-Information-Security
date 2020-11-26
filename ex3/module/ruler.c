@@ -4,14 +4,14 @@ In this module is responsible for rules logic & maintaining.
 #include "ruler.h"
 
 // Aloccating array to hold the rules.
-static rule_t[MAX_RULES] rule_table;
+static rule_t rule_table[MAX_RULES];
 static __u8 rules_ammount;
 static __u8 active = 0; 
 
 /**
  * Returns a pointer to the head of the rule table.
  */
-rule_t *get_rules()
+rule_t *get_rules(void)
 {
     return rule_table;
 }
@@ -19,7 +19,7 @@ rule_t *get_rules()
 /**
  * Returns the current amount of rules in the rule table.
  */
-__u8 get_rules_ammount()
+__u8 get_rules_ammount(void)
 {
     return rules_ammount;
 }
@@ -30,7 +30,7 @@ __u8 get_rules_ammount()
  * 1. *After* loading the module and *before* recieving rules from the user for the first time.
  * 2. If the user introduced unvalid rules.
  */
-__u8 is_active()
+__u8 is_active(void)
 {
     return active;
 }

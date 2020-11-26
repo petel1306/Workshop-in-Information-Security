@@ -3,6 +3,6 @@
 
 #include "fw.h"
 
-static unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
+unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 
 #endif

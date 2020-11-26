@@ -1,5 +1,5 @@
-#include "fw.h"
 #include "filter.h"
+#include "fw.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Ori Petel");
@@ -40,7 +40,7 @@ failed_hook:
     return -1;
 }
 
-static void __exit hw1secws_exit(void)
+static void __exit hw3secws_exit(void)
 {
     // Cleaning resources at exiting - unregister the hook
     nf_unregister_net_hook(&init_net, &nf_forward_op);

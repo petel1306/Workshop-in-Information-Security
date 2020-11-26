@@ -3,10 +3,10 @@
 
 #include "fw.h"
 
-rule_t *get_rules();
+rule_t *get_rules(void);
 
-__u8 get_rules_ammount();
+__u8 get_rules_ammount(void);
 
-__u8 is_active();
+__u8 is_active(void);
 
 #endif

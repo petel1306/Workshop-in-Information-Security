@@ -3,18 +3,19 @@ In this module the packet filtering is preformed.
 */
 
 #include "filter.h"
+#include "logger.h"
 #include "parser.h"
 #include "ruler.h"
-#include "logger.h"
 
-// Boolean evaluation: returns 1 (true) <--> X is non zero
+// Boolean evaluation: returns 1 (MATCH_TRUE) <--> X is non zero
 #define bool_val(X) ((X) ? 1 : 0)
 
 // Create a boolean type.
-// Zero value = false, Non zero value = true
-typedef enum {
-    false = 0,
-    true = 1,
+// Zero value = MATCH_FALSE, Non zero value = MATCH_TRUE
+typedef enum
+{
+    MATCH_FALSE = 0,
+    MATCH_TRUE = 1,
 } bool_t;
 
 /**
@@ -42,76 +43,88 @@ inline bool_t is_port_match(__be16 port_p, __be16 port_r)
  */
 bool_t is_rule_match(const packet_t *packet, const rule_t *rule)
 {
+    // Define the boolean for each matching factor
+    bool_t direction_match;
+    bool_t src_ip_match;
+    bool_t dst_ip_match;
+    bool_t protocol_match;
+    bool_t src_port_match;
+    bool_t dst_port_match;
+    bool_t ack_match;
 
     // Checks the if direction match
-    bool_t direction_match = bool_val(packet->direction & rule->direction);
-    if (direction_match == false)
+    direction_match = bool_val(packet->direction & rule->direction);
+    if (direction_match == MATCH_FALSE)
     {
-        return false;
+        return MATCH_FALSE;
     }
 
     // Checks if the IP addresses match
-    bool_t src_ip_match = is_ip_match(packet->src_ip, rule->src_ip, rule->src_prefix_size);
-    bool_t dst_ip_match = is_ip_match(packet->dst_ip, rule->dst_ip, rule->dst_prefix_size);
-    if (src_ip_match == false || dst_ip_match == false)
+    src_ip_match = is_ip_match(packet->src_ip, rule->src_ip, rule->src_prefix_size);
+    dst_ip_match = is_ip_match(packet->dst_ip, rule->dst_ip, rule->dst_prefix_size);
+    if (src_ip_match == MATCH_FALSE || dst_ip_match == MATCH_FALSE)
     {
-        return false;
+        return MATCH_FALSE;
     }
 
     // Checks if the protocol match
-    bool_t protocol_match = bool_val(rule->protocol == PROT_ANY || packet->protocol == rule->protocol);
-    if (protocol_match == false)
+    protocol_match = bool_val(rule->protocol == PROT_ANY || packet->protocol == rule->protocol);
+    if (protocol_match == MATCH_FALSE)
     {
-        return false;
+        return MATCH_FALSE;
     }
 
-    prot_t protocol = packet->protocol;
-
     // Different behavior for each protocol type
-    if (protocol == PROT_ICMP)
+    if (packet->protocol == PROT_ICMP)
     {
         // There is an ICMP match!
-        return true;
+        return MATCH_TRUE;
     }
     else
     {
         // In that case the protocol is TCP or UDP, hence it has ports.
         // Lets check if the ports match
-        bool_t src_port_match = is_port_match(packet->src_port, rule->src_port);
-        bool_t dst_port_match = is_port_match(packet->dst_port, rule->dst_port);
-        if (src_port_match == false || dst_port_match == false)
+        src_port_match = is_port_match(packet->src_port, rule->src_port);
+        dst_port_match = is_port_match(packet->dst_port, rule->dst_port);
+        if (src_port_match == MATCH_FALSE || dst_port_match == MATCH_FALSE)
         {
-            return false;
+            return MATCH_FALSE;
         }
 
         // Different behavior for TCP, UDP protocols
-        if (protocol == UDP)
+        if (packet->protocol == PROT_UDP)
         {
             // There is an UDP match!
-            return true;
+            return MATCH_TRUE;
         }
         else
         {
             // In that case the protocol is TCP, hence it has an ACK flag.
-            bool_t ack_match = bool_val(packet->ack & rule->ack);
-            if (ack_match == false)
+            ack_match = bool_val(packet->ack & rule->ack);
+            if (ack_match == MATCH_FALSE)
             {
-                return false;
+                return MATCH_FALSE;
             }
-            
+
             // There is a TCP match!
-            return true;
+            return MATCH_TRUE;
         }
     }
     // Should not reach here (all cases should be covered by now)
-    return false;
+    return MATCH_FALSE;
 }
 
 /**
  * We perform here the packet filtering for each packet passing through the firewall
  */
-static unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
+unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
+    // Get the head of the rule table, and iterate over the rules
+    // Note that we aren't supposed to change the rules here, hence the const keyword
+    const rule_t *const rule_table = get_rules();
+    const rule_t *rule;
+    __u8 rule_index;
+
     // Get the required packet fields. The fields should not be changed throughout the filtering.
     const packet_t *packet = parse_packet(skb, state);
 
@@ -133,22 +146,17 @@ static unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct n
     }
 
     // If the rule table is inactive, then accept automatically. (and log the action)
-    if(!is_active()) {
+    if (!is_active())
+    {
         // *** Log the action here, with reason: "reason_t.REASON_FW_INACTIVE" ***
         return NF_ACCEPT;
     }
 
-    // Get the head of the rule table, and iterate over the rules
-    // Note that we aren't supposed to change the rules here, hence the const keyword
-    const rule_t *const rule_table = get_rules();
-    const rule_t *rule;
-
-    for (__u8 rule_index = 0; rule_index < get_rules_ammount(); rule_index++)
+    for (rule_index = 0; rule_index < get_rules_ammount(); rule_index++)
     {
         rule = rule_table + rule_index;
 
-        bool_t rule_match = is_rule_match(packet, rule);
-        if (rule_match)
+        if (is_rule_match(packet, rule))
         {
             __u8 verdict = rule->action;
             // *** Log the action here, with reason: "rule_index" ***
