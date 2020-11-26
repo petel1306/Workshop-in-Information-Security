@@ -7,4 +7,6 @@ rule_t *get_rules();
 
 __u8 get_rules_ammount();
 
+__u8 is_active();
+
 #endif

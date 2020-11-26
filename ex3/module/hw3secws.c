@@ -25,7 +25,7 @@ static int set_nf_hook(struct nf_hook_ops *my_op, enum nf_inet_hooks hook_num)
     return reg_error;
 }
 
-static int __init hw1secws_init(void)
+static int __init hw3secws_init(void)
 {
     // Register hook at Net Filter forward point
     if (set_nf_hook(&nf_forward_op, NF_INET_FORWARD) != 0)
@@ -38,3 +38,13 @@ static int __init hw1secws_init(void)
 // Terminating in case of NF hooking error
 failed_hook:
     return -1;
+}
+
+static void __exit hw1secws_exit(void)
+{
+    // Cleaning resources at exiting - unregister the hook
+    nf_unregister_net_hook(&init_net, &nf_forward_op);
+}
+
+module_init(hw3secws_init);
+module_exit(hw3secws_exit);

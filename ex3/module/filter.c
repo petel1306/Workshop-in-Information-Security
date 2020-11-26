@@ -118,21 +118,24 @@ static unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct n
     // Special actions: (depending on the packet's type)
     switch (packet->type)
     {
-    case PACKET_LOOPBACK:
-        // Accept any loopback (127.0.0.1/8) packet without logging it
-        return NF_ACCEPT;
+    case PACKET_TYPE_LOOPBACK:
+        return NF_ACCEPT; // Accept any loopback (127.0.0.1/8) packet without logging it
 
-    case PACKET_OTHER_PROTOCOL:
-        // Accept any non TCP, UDP and ICMP protocol without logging it
-        return NF_ACCEPT;
+    case PACKET_TYPE_OTHER_PROTOCOL:
+        return NF_ACCEPT; // Accept any non TCP, UDP and ICMP protocol without logging it
 
-    case PACKET_XMAS:
-        // Drop any Christmas tree packet
+    case PACKET_TYPE_XMAS:
         // *** Log the action here, with reason: "reason_t.REASON_XMAS_PACKET" ***
-        return NF_DROP;
+        return NF_DROP; // Drop any Christmas tree packet
 
     default:
-        // This a regular packet (PACKET_REG). Let's look for a match with a rule!
+        break; // This a regular packet (PACKET_REG). Let's look for a match with a rule!
+    }
+
+    // If the rule table is inactive, then accept automatically. (and log the action)
+    if(!is_active()) {
+        // *** Log the action here, with reason: "reason_t.REASON_FW_INACTIVE" ***
+        return NF_ACCEPT;
     }
 
     // Get the head of the rule table, and iterate over the rules

@@ -8,10 +8,10 @@ In this module we parse a socket buffer (packet).
 
 // Classifies packet's type
 typedef enum {
-	PACKET_REG,
-	PACKET_LOOPBACK,
-	PACKET_OTHER_PROTOCOL,
-	PACKET_XMAS,
+	PACKET_TYPE_REG,
+	PACKET_TYPE_LOOPBACK,
+	PACKET_TYPE_OTHER_PROTOCOL,
+	PACKET_TYPE_XMAS,
 } packet_type_t;
 
 // Holds packet's fields.
