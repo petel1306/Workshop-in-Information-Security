@@ -155,6 +155,7 @@ failed_sysfs_class:
 failed_char_device:
 
 // Terminating in case of NF hooking error
+    nf_unregister_net_hook(&init_net, &nf_output_op);
 failed_output:
     nf_unregister_net_hook(&init_net, &nf_forward_op);
 failed_forward:

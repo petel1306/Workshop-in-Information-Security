@@ -24,9 +24,15 @@ typedef enum
  */
 inline bool_t is_ip_match(__be32 ip1, __be32 ip2, __u8 prefix_size)
 {
+    __be32 ip1_prefix, ip2_prefix;
     __u8 host_bits = 32 - prefix_size;
-    __be32 ip1_prefix = ip1 >> host_bits;
-    __be32 ip2_prefix = ip2 >> host_bits;
+
+    if (prefix_size == PREFIX_IP_ANY) {
+        return MATCH_TRUE;
+    }
+    
+    ip1_prefix = ip1 >> host_bits;
+    ip2_prefix = ip2 >> host_bits;
     return bool_val(ip1_prefix == ip2_prefix);
 }
 
@@ -35,7 +41,7 @@ inline bool_t is_ip_match(__be32 ip1, __be32 ip2, __u8 prefix_size)
  */
 inline bool_t is_port_match(__be16 port_p, __be16 port_r)
 {
-    return bool_val(port_r == PORT_ANY || port_p == port_r);
+    return bool_val(port_r == PORT_ANY || (port_r == PORT_ABOVE_1023 && port_p > 1023) || port_r == port_p);
 }
 
 /**
