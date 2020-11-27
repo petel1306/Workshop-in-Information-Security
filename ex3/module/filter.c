@@ -27,10 +27,11 @@ inline bool_t is_ip_match(__be32 ip1, __be32 ip2, __u8 prefix_size)
     __be32 ip1_prefix, ip2_prefix;
     __u8 host_bits = 32 - prefix_size;
 
-    if (prefix_size == PREFIX_IP_ANY) {
+    if (prefix_size == PREFIX_IP_ANY)
+    {
         return MATCH_TRUE;
     }
-    
+
     ip1_prefix = ip1 >> host_bits;
     ip2_prefix = ip2 >> host_bits;
     return bool_val(ip1_prefix == ip2_prefix);
@@ -152,13 +153,13 @@ unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_
     }
 
     // If the rule table is inactive, then accept automatically. (and log the action)
-    if (!is_active())
+    if (is_active_table() == INACTIVE)
     {
         // *** Log the action here, with reason: "reason_t.REASON_FW_INACTIVE" ***
         return NF_ACCEPT;
     }
 
-    for (rule_index = 0; rule_index < get_rules_ammount(); rule_index++)
+    for (rule_index = 0; rule_index < get_rules_amount(); rule_index++)
     {
         rule = rule_table + rule_index;
 

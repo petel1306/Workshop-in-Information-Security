@@ -10,12 +10,18 @@
 #define PORT_ANY (0)
 #define PORT_ABOVE_1023 (1024)
 
+typedef enum
+{
+    INACTIVE,
+    ACTIVE
+} active_t;
+
 // Define getters
 rule_t *get_rules(void);
 
-__u8 get_rules_ammount(void);
+__u8 get_rules_amount(void);
 
-__u8 is_active(void);
+active_t is_active_table(void);
 
 // Define device rules operations
 ssize_t show_rules(struct device *dev, struct device_attribute *attr, char *buf);

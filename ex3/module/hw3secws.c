@@ -143,28 +143,30 @@ static int __init hw3secws_init(void)
     sysfs_class = class_create(THIS_MODULE, CLASS_NAME);
     if (IS_ERR(sysfs_class))
     {
-        printk(KERN_INFO "Failed to create sysfs class\n");
+        INFO("Failed to create sysfs class")
         goto failed_class;
     }
 
     if (register_rules_dev() != 0)
     {
-        printk(KERN_INFO "Failed to register rule devices\n");
+        INFO("Failed to register rule devices")
         goto failed_log_reg;
     }
 
     if (register_log_dev() != 0)
     {
-        printk(KERN_INFO "Failed to register log devices\n");
+        INFO("Failed to register log devices")
         goto failed_rule_reg;
     }
 
     // Register hook at Net Filter forward point
     if (set_nf_hook(&nf_forward_op, NF_INET_FORWARD) != 0)
     {
-        printk(KERN_INFO "Failed to set netfilter FORWARD hook\n");
+        INFO("Failed to set netfilter FORWARD hook")
         goto failed_hook;
     }
+
+    DINFO("Successful Initialization")
 
     return 0;
 
@@ -183,6 +185,13 @@ static void __exit hw3secws_exit(void)
 {
     // Cleaning resources at exiting - unregister the hook
     nf_unregister_net_hook(&init_net, &nf_forward_op);
+
+    // Cleaning resources at exiting - unregister char devices
+    unregister_log_dev();
+    unregister_rules_dev();
+    class_destroy(sysfs_class);
+
+    DINFO("Exiting") 
 }
 
 module_init(hw3secws_init);

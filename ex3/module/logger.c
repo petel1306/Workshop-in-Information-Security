@@ -9,7 +9,7 @@ int open_log(struct inode *_inode, struct file *_file)
     return 0;
 }
 
-ssize_t read_log(struct file *filp, char *buff, size_t length, loff_t *offp)
+ssize_t read_log(struct file *filp, char *buf, size_t length, loff_t *offp)
 {
     return 0;
 }
