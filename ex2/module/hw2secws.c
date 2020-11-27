@@ -1,11 +1,11 @@
+#include <linux/device.h>
+#include <linux/fs.h>
 #include <linux/init.h>
-#include <linux/module.h>
+#include <linux/ip.h>
 #include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
-#include <linux/ip.h>
-#include <linux/fs.h>
-#include <linux/device.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Ori Petel");
@@ -29,7 +29,7 @@ static struct device *sysfs_device = NULL;
 static unsigned int accept_cnt = 0;
 static unsigned int drop_cnt = 0;
 
-ssize_t display_stats(struct device *dev, struct device_attribute *attr, char *buf) //sysfs show implementation
+ssize_t display_stats(struct device *dev, struct device_attribute *attr, char *buf) // sysfs show implementation
 {
     // return scnprintf(buf, PAGE_SIZE, "%u,%u\n", accept_cnt, drop_cnt);
     // *** I could write the line above, but I chose a resource-efficient option! ***
@@ -41,7 +41,8 @@ ssize_t display_stats(struct device *dev, struct device_attribute *attr, char *b
     return UINT_SIZE << 1; // return 2 * uint_size
 }
 
-ssize_t reset_stats(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) //sysfs store implementation
+ssize_t reset_stats(struct device *dev, struct device_attribute *attr, const char *buf,
+                    size_t count) // sysfs store implementation
 {
     if (*buf == '*') // Every store call starts with '*' char, will cause counters resetting
     {
@@ -117,27 +118,26 @@ static int __init hw1secws_init(void)
         goto failed_output;
     }
 
-    //create char device
+    // create char device
     major_number = register_chrdev(0, DEVICE_NAME, &fops);
     if (major_number < 0)
         goto failed_char_device;
 
-    //create sysfs class
+    // create sysfs class
     sysfs_class = class_create(THIS_MODULE, SYSFS_CLASS_NAME);
     if (IS_ERR(sysfs_class))
     {
         goto failed_sysfs_class;
     }
 
-    //create sysfs device
-    sysfs_device = device_create(sysfs_class, NULL, MKDEV(major_number, 0), NULL, SYSFS_CLASS_NAME
-                                 "_" DEVICE_NAME);
+    // create sysfs device
+    sysfs_device = device_create(sysfs_class, NULL, MKDEV(major_number, 0), NULL, SYSFS_CLASS_NAME "_" DEVICE_NAME);
     if (IS_ERR(sysfs_device))
     {
         goto failed_sysfs_device;
     }
 
-    //create sysfs file attributes
+    // create sysfs file attributes
     if (device_create_file(sysfs_device, (const struct device_attribute *)&dev_attr_sysfs_att.attr))
     {
         goto failed_sysfs_att;
