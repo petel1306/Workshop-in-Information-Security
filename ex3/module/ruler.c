@@ -6,7 +6,7 @@ In this module is responsible for rules logic & maintaining.
 // Aloccating array to hold the rules.
 static rule_t rule_table[MAX_RULES];
 static __u8 rules_ammount;
-static __u8 active = 0; 
+static __u8 active = 0;
 
 /**
  * Returns a pointer to the head of the rule table.
@@ -33,4 +33,14 @@ __u8 get_rules_ammount(void)
 __u8 is_active(void)
 {
     return active;
+}
+
+ssize_t show_rules(struct device *dev, struct device_attribute *attr, char *buf)
+{
+    return 0;
+}
+
+ssize_t store_rules(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+    return count;
 }

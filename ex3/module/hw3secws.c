@@ -1,19 +1,21 @@
 #include "filter.h"
 #include "fw.h"
+#include "logger.h"
+#include "ruler.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Ori Petel");
 
-#define DEVICE_NAME_RULE "fw_rule"
-#define DEVICE_NAME_LOG "fw_log"
 #define CLASS_NAME "fw"
-#define SYS_DEVICE_NAME_RULE "rules"
-#define SYS_DEVICE_NAME_LOG "log"
+#define MAJOR_NAME_RULE "fw-chardev1"
+#define MAJOR_NAME_LOG "fw-chardev2"
+#define DEVICE_NAME_RULE "rules"
+#define DEVICE_NAME_LOG "fw_log"
 
-static int rule_major;
+static int rules_major;
 static int log_major;
 static struct class *sysfs_class = NULL;
-static struct device *rule_dev = NULL;
+static struct device *rules_dev = NULL;
 static struct device *log_dev = NULL;
 
 // Allocating struct to hold forward hook_op
@@ -37,42 +39,124 @@ static int set_nf_hook(struct nf_hook_ops *my_op, enum nf_inet_hooks hook_num)
     return reg_error;
 }
 
-static int register_rule_device(void)
+/*
+ * Rules device registartion procedure :
+ */
+
+static struct file_operations rule_ops = {.owner = THIS_MODULE};
+
+static DEVICE_ATTR(rules, S_IWUSR | S_IRUGO, show_rules, store_rules);
+
+static int register_rules_dev(void)
 {
+    // create char device
+    rules_major = register_chrdev(0, MAJOR_NAME_RULE, &rule_ops);
+    if (rules_major < 0)
+    {
+        goto failed_rules_major;
+    }
+
+    // create sysfs device
+    rules_dev = device_create(sysfs_class, NULL, MKDEV(rules_major, 0), NULL, DEVICE_NAME_RULE);
+    if (IS_ERR(rules_dev))
+    {
+        goto failed_rules_device;
+    }
+
+    // create sysfs file attributes
+    if (device_create_file(rules_dev, (const struct device_attribute *)&dev_attr_rules.attr))
+    {
+
+        goto failed_rules_file;
+    }
     return 0;
+
+failed_rules_file:
+    device_destroy(sysfs_class, MKDEV(rules_major, 0));
+failed_rules_device:
+    unregister_chrdev(rules_major, MAJOR_NAME_RULE);
+failed_rules_major:
+    return -1;
 }
-static void unregister_rule_device(void)
+static void unregister_rules_dev(void)
 {
-    return;
+    device_remove_file(rules_dev, (const struct device_attribute *)&dev_attr_rules.attr);
+    device_destroy(sysfs_class, MKDEV(rules_major, 0));
+    unregister_chrdev(rules_major, MAJOR_NAME_RULE);
 }
 
-static int register_log_device(void)
+/*
+ * Log device registartion procedure :
+ */
+
+static struct file_operations log_ops = {.owner = THIS_MODULE, .open = open_log, .read = read_log};
+
+static DEVICE_ATTR(reset, S_IWUSR | S_IRUGO, NULL, reset_log);
+
+static int register_log_dev(void)
 {
+    // create char device
+    log_major = register_chrdev(0, MAJOR_NAME_LOG, &log_ops);
+    if (log_major < 0)
+    {
+        goto failed_log_major;
+    }
+
+    // create sysfs device - acced from sysfs
+    log_dev = device_create(sysfs_class, NULL, MKDEV(log_major, 0), NULL, DEVICE_NAME_LOG);
+    if (IS_ERR(log_dev))
+    {
+        goto failed_log_device;
+    }
+
+    // create sysfs file attributes
+    if (device_create_file(log_dev, (const struct device_attribute *)&dev_attr_reset.attr))
+    {
+        goto failed_log_file;
+    }
+
     return 0;
+
+failed_log_file:
+    device_destroy(sysfs_class, MKDEV(log_major, 0));
+failed_log_device:
+    unregister_chrdev(log_major, MAJOR_NAME_LOG);
+failed_log_major:
+    return -1;
 }
 
-static void unregister_log_device(void)
+static void unregister_log_dev(void)
 {
-    return;
+    device_remove_file(log_dev, (const struct device_attribute *)&dev_attr_reset.attr);
+    device_destroy(sysfs_class, MKDEV(log_major, 0));
+    unregister_chrdev(log_major, MAJOR_NAME_LOG);
 }
 
+/**
+ * Initialize module:
+ * 1. Register char devices using sysfs API.
+ * 2. Reister NetFilter hook at forward point.
+ */
 static int __init hw3secws_init(void)
 {
     // create sysfs class
     sysfs_class = class_create(THIS_MODULE, CLASS_NAME);
-    if ( IS_ERR(sysfs_class)) {
-        printk(KERN_INFO "Failed to set sysfs class\n");
+    if (IS_ERR(sysfs_class))
+    {
+        printk(KERN_INFO "Failed to create sysfs class\n");
         goto failed_class;
     }
-    
-    if (register_rule_device() != 0) {
-        printk(KERN_INFO "Failed to set rule device\n");
-        goto failed_rule_dev;
+
+    if (register_rules_dev() != 0)
+    {
+        printk(KERN_INFO "Failed to register rule devices\n");
+        goto failed_log_reg;
     }
 
-    if (register_log_device() != 0){
-        printk(KERN_INFO "Failed to set log device\n");
-        goto failed_log_dev;
+    if (register_log_dev() != 0)
+    {
+        printk(KERN_INFO "Failed to register log devices\n");
+        goto failed_rule_reg;
     }
 
     // Register hook at Net Filter forward point
@@ -82,15 +166,15 @@ static int __init hw3secws_init(void)
         goto failed_hook;
     }
 
-        return 0;
+    return 0;
 
 // Terminating in case of registration error
 failed_hook:
-    unregister_log_device();
-failed_log_dev:
-    unregister_rule_device();
-failed_rule_dev:
-class_destroy(sysfs_class);
+    unregister_log_dev();
+failed_log_reg:
+    unregister_rules_dev();
+failed_rule_reg:
+    class_destroy(sysfs_class);
 failed_class:
     return -1;
 }
