@@ -8,7 +8,7 @@ static packet_t packet;
 static const packet_t empty_packet;
 
 const __be32 LOOPBACK_PREFIX = 0x7F000000;
-const __be32 LOOPBACK_MASK = 0xFFFFFF00;
+const __be32 LOOPBACK_MASK = 0xFF000000;
 
 inline __be32 is_loopback(__be32 address)
 {

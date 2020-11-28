@@ -21,11 +21,11 @@ unsigned int get_info_counter(void);
 /*
  * Print debug messages to the user (in case DEBUG is defined)
  */
-
 #define DEBUG
 
 #ifdef DEBUG
-#define DINFO(message, ...) printk(KERN_INFO "\n\nFirewall-%d debug: " message "\n\n", get_info_counter(), ##__VA_ARGS__);
+#define DINFO(message, ...)                                                                                            \
+    printk(KERN_INFO "\n\nFirewall-%d debug: " message "\n\n", get_info_counter(), ##__VA_ARGS__);
 #else
 #define DINFO(...)
 #endif
@@ -40,8 +40,8 @@ void var2buf(char **buf_ptr, const void *var, size_t n);
  */
 void buf2var(const char **buf_ptr, void *var, size_t n);
 
-#define VAR2BUF(var) var2buf(&buf, var, sizeof(var));
-#define BUF2VAR(var) buf2var(&buf, var, sizeof(var));
+#define VAR2BUF(var) var2buf(&buf, var, sizeof(var))
+#define BUF2VAR(var) buf2var(&buf, var, sizeof(var))
 
 // the protocols we will work with
 typedef enum
