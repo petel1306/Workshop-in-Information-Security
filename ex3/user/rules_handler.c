@@ -239,6 +239,7 @@ uint8_t str2ip(const char *str, uint32_t *ip, uint8_t *prefix_size)
     struct in_addr ip_addr;
     char ip_str[30];
     unsigned int prefix_buf;
+    int valid_adress;
     int check;
 
     if (0 == strcmp(str, "any"))
@@ -254,7 +255,8 @@ uint8_t str2ip(const char *str, uint32_t *ip, uint8_t *prefix_size)
     }
     *prefix_size = (uint8_t)prefix_buf;
 
-    if (inet_aton(ip_str, &ip_addr) == 0)
+    valid_adress = inet_aton(ip_str, &ip_addr);
+    if (valid_adress == 0)
     {
         return 0;
     }

@@ -1,3 +1,6 @@
+#ifndef _RULES_HANDLER_H
+#define _RULES_HANDLER_H
+
 #include "interface.h"
 
 #define MAX_RULES 50
@@ -33,11 +36,10 @@ typedef struct
     uint8_t action;          // valid values: NF_ACCEPT, NF_DROP
 } rule_t;
 
-const uint8_t RULE_SIZE =
-    20 + sizeof(direction_t) + sizeof(ack_t) + 2 * sizeof(uint32_t) + 2 * sizeof(uint16_t) + 4 * sizeof(uint8_t);
-
 void rule2buf(const rule_t *rule, char *buf);
 void buf2rule(rule_t *rule, const char *buf);
 
 void rule2str(const rule_t *rule, char *str);
 uint8_t str2rule(rule_t *rule, const char *str);
+
+#endif

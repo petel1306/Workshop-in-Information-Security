@@ -13,7 +13,7 @@ static struct
     rule_t rules[MAX_RULES];
     __u8 amount;
     active_t active;
-} rule_table = {.active = 0};
+} rule_table = {.active = INACTIVE};
 
 /**
  * Returns a pointer to the head of the rule table.
@@ -37,9 +37,9 @@ __u8 get_rules_amount(void)
  * 1. *After* loading the module and *before* recieving rules from the user for the first time.
  * 2. If the user introduced unvalid rules.
  */
-active_t inactivate_table(void)
+active_t is_active_table(void)
 {
-    return rule_table.amount = 0;
+    return rule_table.active;
 }
 
 /*

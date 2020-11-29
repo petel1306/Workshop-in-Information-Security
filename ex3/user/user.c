@@ -5,6 +5,9 @@
 #define LOG_SYS_PATH "/sys/class/fw/log/reset"
 #define LOG_DEV_PATH "/sys/class/fw/log/reset"
 
+const uint8_t RULE_BUF_SIZE =
+    20 + sizeof(direction_t) + sizeof(ack_t) + 2 * sizeof(uint32_t) + 2 * sizeof(uint16_t) + 4 * sizeof(uint8_t);
+
 int main(int argc, char *argv[])
 {
     FILE *fw_file;
@@ -12,9 +15,11 @@ int main(int argc, char *argv[])
     {
         char *command = argv[1];
 
-        if (strcmp(command, "show_rules") && argc == 2)
+        DINFO("%s", command)
+
+        if (strcmp(command, "show_rules") == 0 && argc == 2)
         {
-            char rule_buf[RULE_SIZE];
+            char rule_buf[RULE_BUF_SIZE];
             rule_t rule;
             char rule_str[MAX_RULE_LINE];
 
@@ -35,7 +40,10 @@ int main(int argc, char *argv[])
             for (uint8_t i = 0; i < rules_amount; i++)
             {
                 // Read buffer from rules device
-                fread(rule_buf, RULE_SIZE, 1, fw_file);
+                if (fread(rule_buf, RULE_BUF_SIZE, 1, fw_file) != 1)
+                {
+                    INFO("An reading error from rules device occurred")
+                }
 
                 // Convert buffer to rule struct
                 buf2rule(&rule, rule_buf);
@@ -50,7 +58,7 @@ int main(int argc, char *argv[])
             fclose(fw_file);
         }
 
-        else if (strcmp(command, "load_rules") && argc == 3)
+        else if (strcmp(command, "load_rules") == 0 && argc == 3)
         {
             rule_t rules[MAX_RULES];
             char rule_str[MAX_RULE_LINE];
@@ -67,7 +75,6 @@ int main(int argc, char *argv[])
             for (rules_ind = 0; rules_ind < MAX_RULES; rules_ind++)
             {
                 // Get a line from the rules file
-                char *read_ptr = fgets(rule_str, MAX_RULE_LINE, rules_file);
                 if (fscanf(rules_file, "%100s", rule_str) != 1)
                 {
                     break;
@@ -83,11 +90,11 @@ int main(int argc, char *argv[])
             }
 
             // Validates the file dosn't contain any additional non whitespace characters
-            if (fscanf(rules_file, "%1s", rule_str) == 1)
-            {
-                INFO("To much rules! (number of rules greater than %d", MAX_RULES)
-                return EXIT_FAILURE;
-            }
+            // if (fscanf(rules_file, "%1s", rule_str) == 1)
+            // {
+            //     INFO("To much rules! (number of rules greater than %d", MAX_RULES)
+            //     return EXIT_FAILURE;
+            // }
 
             // We have finished read, lets write!
             fw_file = fopen(RULES_PATH, "wb");
@@ -98,34 +105,35 @@ int main(int argc, char *argv[])
 
             fwrite(&rules_ind, 1, 1, fw_file);
 
-            char rule_buf[RULE_SIZE];
+            char rule_buf[RULE_BUF_SIZE];
             for (uint8_t i = 0; i < rules_ind; i++)
             {
                 // Convert rule struct to buffer
                 rule2buf(rules + i, rule_buf);
 
                 // Write buffer to rules device
-                fwrite(rule_buf, RULE_SIZE, 1, fw_file);
+                fwrite(rule_buf, RULE_BUF_SIZE, 1, fw_file);
             }
 
             INFO("Rules loaded successfuly")
             return EXIT_SUCCESS;
         }
 
-        else if (strcmp(command, "show_log"))
+        else if (strcmp(command, "show_log") == 0)
         {
             fw_file = fopen(LOG_DEV_PATH, "r");
 
             INFO("unhandled")
         }
 
-        else if (strcmp(command, "clear_log"))
+        else if (strcmp(command, "clear_log") == 0)
         {
             fw_file = fopen(LOG_SYS_PATH, "w");
 
             INFO("unhandled")
         }
 
+        INFO("Unrecognized command\n")
         return EXIT_SUCCESS;
     }
     INFO("Invalid argument amount\n")
