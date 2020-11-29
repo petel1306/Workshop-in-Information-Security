@@ -325,8 +325,8 @@ void rule2str(const rule_t *rule, char *str)
     action = action2str(rule->action);
 
     // At least 2 spaces between each field
-    sprintf(str, "%-20s  %-3s  %-18s  %-18s  %-4s  %-5s  %-5s  %-3s  %-6s\n", rule->rule_name, direction, src_ip,
-            dst_ip, protocol, src_port, dst_port, ack, action);
+    sprintf(str, "%-20s  %-3s  %-18s  %-18s  %-4s  %-5s  %-5s  %-3s  %-6s", rule->rule_name, direction, src_ip, dst_ip,
+            protocol, src_port, dst_port, ack, action);
 }
 
 #define STR2FIELD(field) b_##field = str2##field(str, &rule->field)
@@ -340,8 +340,8 @@ uint8_t str2rule(rule_t *rule, const char *str)
     uint8_t b_direction, b_src_ip, b_dst_ip, b_protocol, b_src_port, b_dst_port, b_ack, b_action;
     int check;
 
-    check = sscanf(str, "%20s %3s %18s %18s %4s %5s %5s %3s %6s\n", rule->rule_name, direction, src_ip, dst_ip,
-                   protocol, src_port, dst_port, ack, action);
+    check = sscanf(str, "%20s %3s %18s %18s %4s %5s %5s %3s %6s", rule->rule_name, direction, src_ip, dst_ip, protocol,
+                   src_port, dst_port, ack, action);
     if (check != 9)
     {
         return 0;

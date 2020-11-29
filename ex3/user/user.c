@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
                 rule2str(&rule, rule_str);
 
                 // Print the string to the user
-                printf("%s", rule_str);
+                printf("%s\n", rule_str);
             }
 
             fclose(fw_file);
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
             for (rules_ind = 0; rules_ind < MAX_RULES; rules_ind++)
             {
                 // Get a line from the rules file
-                if (fscanf(rules_file, "%100s", rule_str) != 1)
+                if (fscanf(rules_file, "%s\n", rule_str) < 1)
                 {
                     break;
                 }
