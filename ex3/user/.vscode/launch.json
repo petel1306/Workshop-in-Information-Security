@@ -7,6 +7,7 @@
             "name": "Debug",
             "target": "./main",
             "cwd": "${workspaceRoot}",
+            // "arguments": "show_rules"
             "arguments": "load_rules ./rules_example.txt"
         }
     ]

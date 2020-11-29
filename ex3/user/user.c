@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
                 rule2str(&rule, rule_str);
 
                 // Print the string to the user
-                printf("%s\n", rule_str);
+                printf("%s", rule_str);
             }
 
             fclose(fw_file);
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
             for (rules_ind = 0; rules_ind < MAX_RULES; rules_ind++)
             {
                 // Get a line from the rules file
-                if (fscanf(rules_file, "%s\n", rule_str) < 1)
+                if (fgets(rule_str, MAX_RULE_LINE, rules_file) == NULL)
                 {
                     break;
                 }
@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 
             // We have finished read, lets write!
             fw_file = fopen(RULES_PATH, "wb");
-            if (rules_file == NULL)
+            if (fw_file == NULL)
             {
                 INFO("Can't write to rules device in sysfs")
             }
