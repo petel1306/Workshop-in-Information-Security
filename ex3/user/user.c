@@ -15,13 +15,15 @@ int main(int argc, char *argv[])
     {
         char *command = argv[1];
 
-        DINFO("%s", command)
+        DINFO("command = %s", command)
 
         if (strcmp(command, "show_rules") == 0 && argc == 2)
         {
             char rule_buf[RULE_BUF_SIZE];
             rule_t rule;
             char rule_str[MAX_RULE_LINE];
+
+            INFO("Showing rules...")
 
             fw_file = fopen(RULES_PATH, "rb");
             if (fw_file == NULL)
@@ -54,8 +56,9 @@ int main(int argc, char *argv[])
                 // Print the string to the user
                 printf("%s", rule_str);
             }
-
             fclose(fw_file);
+
+            return EXIT_SUCCESS;
         }
 
         else if (strcmp(command, "load_rules") == 0 && argc == 3)
@@ -63,6 +66,8 @@ int main(int argc, char *argv[])
             rule_t rules[MAX_RULES];
             char rule_str[MAX_RULE_LINE];
             uint8_t rules_ind;
+
+            INFO("Loading rules...")
 
             const char *load_path = argv[2];
             FILE *rules_file = fopen(load_path, "r");
@@ -77,8 +82,10 @@ int main(int argc, char *argv[])
                 // Get a line from the rules file
                 if (fgets(rule_str, MAX_RULE_LINE, rules_file) == NULL)
                 {
+
                     break;
                 }
+                DINFO("Rule %d : %s", rules_ind + 1, rule_str)
 
                 // Convert rule human-readable string to a rule struct
                 uint8_t valid_rule = str2rule(rules + rules_ind, rule_str);
@@ -89,20 +96,14 @@ int main(int argc, char *argv[])
                 }
             }
 
-            // Validates the file dosn't contain any additional non whitespace characters
-            // if (fscanf(rules_file, "%1s", rule_str) == 1)
-            // {
-            //     INFO("To much rules! (number of rules greater than %d", MAX_RULES)
-            //     return EXIT_FAILURE;
-            // }
-
-            // We have finished read, lets write!
+            // We have finished reading the rules, lets write them to the device
             fw_file = fopen(RULES_PATH, "wb");
             if (fw_file == NULL)
             {
                 INFO("Can't write to rules device in sysfs")
             }
 
+            // Writing the amount of rules first
             fwrite(&rules_ind, 1, 1, fw_file);
 
             char rule_buf[RULE_BUF_SIZE];
@@ -119,22 +120,35 @@ int main(int argc, char *argv[])
             return EXIT_SUCCESS;
         }
 
-        else if (strcmp(command, "show_log") == 0)
+        else if (strcmp(command, "show_log") == 0) // Unhandled
         {
+            INFO("Showing log...")
+
             fw_file = fopen(LOG_DEV_PATH, "r");
 
-            INFO("unhandled")
+            fclose(fw_file);
+
+            DINFO("unhandled")
+            return EXIT_SUCCESS;
         }
 
-        else if (strcmp(command, "clear_log") == 0)
+        else if (strcmp(command, "clear_log") == 0) // Unhandled
         {
+            INFO("Clearing log...")
+
             fw_file = fopen(LOG_SYS_PATH, "w");
 
-            INFO("unhandled")
+            fclose(fw_file);
+
+            INFO("Log has been cleared")
+            return EXIT_SUCCESS;
         }
 
-        INFO("Unrecognized command\n")
-        return EXIT_SUCCESS;
+        else
+        {
+            INFO("Unrecognized command\n")
+            return EXIT_FAILURE;
+        }
     }
     INFO("Invalid argument amount\n")
     return EXIT_FAILURE;

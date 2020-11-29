@@ -1,6 +1,9 @@
 #include "rules_handler.h"
 
 #include <arpa/inet.h>
+// Declarations of the functions we will use from inet
+int inet_aton(const char *cp, struct in_addr *inp);
+char *inet_ntoa(struct in_addr in);
 
 // macros for rule fiels
 #define PREFIX_IP_ANY (0) // A prefix size that used to indicate, the rule allows any IP address
@@ -13,22 +16,19 @@ typedef enum
     NF_ACCEPT = 1,
 } action_t;
 
-/*
- * Copy rule struct to a char buffer
- */
 void rule2buf(const rule_t *rule, char *buf)
 {
-    VAR2BUF(rule->rule_name);
-    VAR2BUF(&rule->direction);
-    VAR2BUF(&rule->src_ip);
-    VAR2BUF(&rule->src_prefix_size);
-    VAR2BUF(&rule->dst_ip);
-    VAR2BUF(&rule->dst_prefix_size);
-    VAR2BUF(&rule->src_port);
-    VAR2BUF(&rule->dst_port);
-    VAR2BUF(&rule->protocol);
-    VAR2BUF(&rule->ack);
-    VAR2BUF(&rule->action);
+    STR2BUF(rule->rule_name, 20);
+    VAR2BUF(rule->direction);
+    VAR2BUF(rule->src_ip);
+    VAR2BUF(rule->src_prefix_size);
+    VAR2BUF(rule->dst_ip);
+    VAR2BUF(rule->dst_prefix_size);
+    VAR2BUF(rule->src_port);
+    VAR2BUF(rule->dst_port);
+    VAR2BUF(rule->protocol);
+    VAR2BUF(rule->ack);
+    VAR2BUF(rule->action);
 }
 
 /*
@@ -36,18 +36,17 @@ void rule2buf(const rule_t *rule, char *buf)
  */
 void buf2rule(rule_t *rule, const char *buf)
 {
-
-    BUF2VAR(rule->rule_name);
-    BUF2VAR(&rule->direction);
-    BUF2VAR(&rule->src_ip);
-    BUF2VAR(&rule->src_prefix_size);
-    BUF2VAR(&rule->dst_ip);
-    BUF2VAR(&rule->dst_prefix_size);
-    BUF2VAR(&rule->src_port);
-    BUF2VAR(&rule->dst_port);
-    BUF2VAR(&rule->protocol);
-    BUF2VAR(&rule->ack);
-    BUF2VAR(&rule->action);
+    BUF2STR(rule->rule_name, 20);
+    BUF2VAR(rule->direction);
+    BUF2VAR(rule->src_ip);
+    BUF2VAR(rule->src_prefix_size);
+    BUF2VAR(rule->dst_ip);
+    BUF2VAR(rule->dst_prefix_size);
+    BUF2VAR(rule->src_port);
+    BUF2VAR(rule->dst_port);
+    BUF2VAR(rule->protocol);
+    BUF2VAR(rule->ack);
+    BUF2VAR(rule->action);
 }
 
 #define STR_TCP "TCP"

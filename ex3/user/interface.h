@@ -11,14 +11,14 @@ unsigned int get_info_counter(void);
 /*
  * Print messgas to the user
  */
-#define INFO(message, ...) printf("\nFirewall_user-%d debug: " message "\n", get_info_counter(), ##__VA_ARGS__);
+#define INFO(message, ...) printf("\nFirewall_user-%d: " message "\n\n", get_info_counter(), ##__VA_ARGS__);
 
 /*
  * Print debug messages to the user (in case DEBUG is defined)
  */
-#define DEBUG
+// #define DEBUG
 #ifdef DEBUG
-#define DINFO(message, ...) printf("\nFirewall_user-%d debug: " message "\n", get_info_counter(), ##__VA_ARGS__);
+#define DINFO(message, ...) printf("\nFirewall_user-%d debug: " message "\n\n", get_info_counter(), ##__VA_ARGS__);
 #else
 #define DINFO(...)
 #endif
@@ -33,8 +33,11 @@ void var2buf(char **buf_ptr, const void *var, size_t n);
  */
 void buf2var(const char **buf_ptr, void *var, size_t n);
 
-#define VAR2BUF(var) var2buf(&buf, var, sizeof(var))
-#define BUF2VAR(var) buf2var(&buf, var, sizeof(var))
+#define VAR2BUF(var) var2buf(&buf, &var, sizeof(var))
+#define BUF2VAR(var) buf2var(&buf, &var, sizeof(var))
+
+#define STR2BUF(str, n) var2buf(&buf, str, n)
+#define BUF2STR(str, n) buf2var(&buf, str, n)
 
 // the protocols we will work with
 typedef enum

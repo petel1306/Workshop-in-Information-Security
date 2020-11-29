@@ -24,10 +24,14 @@ unsigned int get_info_counter(void);
 #define DEBUG
 
 #ifdef DEBUG
+#define DCOM(command) command // Debug command
 #define DINFO(message, ...)                                                                                            \
     printk(KERN_INFO "\n\nFirewall-%d debug: " message "\n\n", get_info_counter(), ##__VA_ARGS__);
+#define DSHOW(var) DINFO(#var " = %d", var);
 #else
+#define DCOM(command)
 #define DINFO(...)
+#define DSHOW(var)
 #endif
 
 /**
@@ -40,8 +44,11 @@ void var2buf(char **buf_ptr, const void *var, size_t n);
  */
 void buf2var(const char **buf_ptr, void *var, size_t n);
 
-#define VAR2BUF(var) var2buf(&buf, var, sizeof(var))
-#define BUF2VAR(var) buf2var(&buf, var, sizeof(var))
+#define VAR2BUF(var) var2buf(&buf, &var, sizeof(var))
+#define BUF2VAR(var) buf2var(&buf, &var, sizeof(var))
+
+#define STR2BUF(str, n) var2buf(&buf, str, n)
+#define BUF2STR(str, n) buf2var(&buf, str, n)
 
 // the protocols we will work with
 typedef enum

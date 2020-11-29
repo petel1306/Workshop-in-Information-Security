@@ -1,3 +1,4 @@
+clear
 cd /home/fw/project/ex3/module
 sudo rmmod firewall
 make clean

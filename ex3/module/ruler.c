@@ -47,17 +47,17 @@ active_t is_active_table(void)
  */
 void rule2buf(const rule_t *rule, char *buf)
 {
-    VAR2BUF(rule->rule_name);
-    VAR2BUF(&rule->direction);
-    VAR2BUF(&rule->src_ip);
-    VAR2BUF(&rule->src_prefix_size);
-    VAR2BUF(&rule->dst_ip);
-    VAR2BUF(&rule->dst_prefix_size);
-    VAR2BUF(&rule->src_port);
-    VAR2BUF(&rule->dst_port);
-    VAR2BUF(&rule->protocol);
-    VAR2BUF(&rule->ack);
-    VAR2BUF(&rule->action);
+    STR2BUF(rule->rule_name, 20);
+    VAR2BUF(rule->direction);
+    VAR2BUF(rule->src_ip);
+    VAR2BUF(rule->src_prefix_size);
+    VAR2BUF(rule->dst_ip);
+    VAR2BUF(rule->dst_prefix_size);
+    VAR2BUF(rule->src_port);
+    VAR2BUF(rule->dst_port);
+    VAR2BUF(rule->protocol);
+    VAR2BUF(rule->ack);
+    VAR2BUF(rule->action);
 }
 
 /*
@@ -65,23 +65,23 @@ void rule2buf(const rule_t *rule, char *buf)
  */
 void buf2rule(rule_t *rule, const char *buf)
 {
-
-    BUF2VAR(rule->rule_name);
-    BUF2VAR(&rule->direction);
-    BUF2VAR(&rule->src_ip);
-    BUF2VAR(&rule->src_prefix_size);
-    BUF2VAR(&rule->dst_ip);
-    BUF2VAR(&rule->dst_prefix_size);
-    BUF2VAR(&rule->src_port);
-    BUF2VAR(&rule->dst_port);
-    BUF2VAR(&rule->protocol);
-    BUF2VAR(&rule->ack);
-    BUF2VAR(&rule->action);
+    BUF2STR(rule->rule_name, 20);
+    BUF2VAR(rule->direction);
+    BUF2VAR(rule->src_ip);
+    BUF2VAR(rule->src_prefix_size);
+    BUF2VAR(rule->dst_ip);
+    BUF2VAR(rule->dst_prefix_size);
+    BUF2VAR(rule->src_port);
+    BUF2VAR(rule->dst_port);
+    BUF2VAR(rule->protocol);
+    BUF2VAR(rule->ack);
+    BUF2VAR(rule->action);
 }
 
 ssize_t show_rules(struct device *dev, struct device_attribute *attr, char *buf)
 {
     rule_t *rule;
+    DINFO("Showing rules")
 
     if (rule_table.active == INACTIVE)
     {
@@ -89,7 +89,7 @@ ssize_t show_rules(struct device *dev, struct device_attribute *attr, char *buf)
     }
 
     // Storing the amount of rules in the buffer first
-    VAR2BUF(&rule_table.amount);
+    VAR2BUF(rule_table.amount);
 
     // Stroing each rule in the buffer a serial manner
     for (rule = rule_table.rules; rule < rule_table.rules + rule_table.amount; rule++)
@@ -116,6 +116,18 @@ __u8 is_valid_rule(rule_t *rule)
     __u8 valid_ack = rule->ack == ACK_NO || rule->ack == ACK_YES || rule->ack == ACK_ANY;
     __u8 valid_action = rule->action == NF_DROP || rule->action == NF_ACCEPT;
 
+    DINFO("%s", rule->rule_name)
+    DSHOW(rule->direction)
+    DSHOW(rule->src_ip)
+    DSHOW(rule->src_prefix_size)
+    DSHOW(rule->dst_ip)
+    DSHOW(rule->dst_prefix_size)
+    DSHOW(rule->protocol)
+    DSHOW(rule->src_port)
+    DSHOW(rule->dst_port)
+    DSHOW(rule->ack)
+    DSHOW(rule->action)
+
     return valid_direction && valid_prefix && valid_ports && valid_protocol && valid_ack && valid_action;
 }
 
@@ -123,8 +135,13 @@ ssize_t store_rules(struct device *dev, struct device_attribute *attr, const cha
 {
     rule_t *rule;
 
+    DINFO("Storing rules")
+
     // Getting the amount of rules first
-    BUF2VAR(&rule_table.amount);
+    BUF2VAR(rule_table.amount);
+
+    DSHOW(rule_table.amount)
+    DSHOW(count)
 
     if (rule_table.amount > MAX_RULES || count != rule_table.amount * RULE_SIZE + sizeof(rule_table.amount))
     {
