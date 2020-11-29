@@ -52,9 +52,5 @@ Mkfile.old
 dkms.conf
 
 # VScode junk
-.cache/
-.tmp_versions
 
 # Make junk
-.cache.mk
-.parser.o.cmd
