@@ -10,8 +10,8 @@
             "request": "launch",
             "target": "./user/main",
             "cwd": "${workspaceRoot}",
-            //"arguments": "show_rules",
-            "arguments": "load_rules ./examples/rules.txt"
+            "arguments": "show_rules",
+            // "arguments": "load_rules ./examples/rules.txt"
         }
     ]
 }

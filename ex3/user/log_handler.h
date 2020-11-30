@@ -25,7 +25,8 @@ typedef struct
     unsigned int count;      // counts this line's hits
 } log_row_t;
 
-void buf2log(log_row_t *log, const char *buf);
-void log2str(const log_row_t *log, char *str);
+void buf2log_row(log_row_t *log_row, const char *buf);
+void log_row2str(const log_row_t *log_row, char *str);
+void log_headline(char *str);
 
 #endif

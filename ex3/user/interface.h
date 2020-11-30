@@ -16,7 +16,7 @@ unsigned int get_info_counter(void);
 /*
  * Print debug messages to the user (in case DEBUG is defined)
  */
-// #define DEBUG
+#define DEBUG
 #ifdef DEBUG
 #define DINFO(message, ...) printf("\nFirewall_user-%d debug: " message "\n\n", get_info_counter(), ##__VA_ARGS__);
 #else

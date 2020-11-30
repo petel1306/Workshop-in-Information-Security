@@ -3,8 +3,12 @@
 #include "rules_handler.h"
 
 #define RULES_PATH "/sys/class/fw/rules/rules"
-#define LOG_SYS_PATH "/sys/class/fw/log/reset"
-#define LOG_DEV_PATH "/sys/class/fw/log/reset"
+#define LOG_SYS_PATH "/sys/class/fw/fw_log/reset"
+#define LOG_DEV_PATH "/dev/fw_log"
+
+// Just to make sure :)
+#define MAX_RULE_LINE 200
+#define MAX_LOG_LINE 200
 
 const uint8_t RULE_BUF_SIZE =
     20 + sizeof(direction_t) + sizeof(ack_t) + 2 * sizeof(uint32_t) + 2 * sizeof(uint16_t) + 4 * sizeof(uint8_t);
@@ -32,7 +36,7 @@ int main(int argc, char *argv[])
             fw_file = fopen(RULES_PATH, "rb");
             if (fw_file == NULL)
             {
-                INFO("Can't read from rules device in sysfs")
+                INFO("Can't open (on read mode) rules device in /sys")
                 return EXIT_FAILURE;
             }
 
@@ -40,7 +44,7 @@ int main(int argc, char *argv[])
             if (fread(&rules_amount, 1, 1, fw_file) == 0)
             {
                 INFO("Rule table isn't active")
-                return EXIT_FAILURE;
+                return EXIT_SUCCESS;
             }
 
             for (uint8_t i = 0; i < rules_amount; i++)
@@ -48,13 +52,13 @@ int main(int argc, char *argv[])
                 // Read buffer from rules device
                 if (fread(rule_buf, RULE_BUF_SIZE, 1, fw_file) != 1)
                 {
-                    INFO("An reading error from rules device occurred")
+                    INFO("An reading error from rules device has occurred")
                 }
 
                 // Convert buffer to rule struct
                 buf2rule(&rule, rule_buf);
 
-                // Convert rule struct to human-readable string
+                // Convert rule struct to a human-readable string
                 rule2str(&rule, rule_str);
 
                 // Print the string to the user
@@ -104,11 +108,14 @@ int main(int argc, char *argv[])
             fw_file = fopen(RULES_PATH, "wb");
             if (fw_file == NULL)
             {
-                INFO("Can't write to rules device in sysfs")
+                INFO("Can't open (on write mode) rules device in /sys")
             }
 
             // Writing the amount of rules first
-            fwrite(&rules_ind, 1, 1, fw_file);
+            if (fwrite(&rules_ind, 1, 1, fw_file) != 1)
+            {
+                INFO("An writing error to rules device has occurred")
+            }
 
             char rule_buf[RULE_BUF_SIZE];
             for (uint8_t i = 0; i < rules_ind; i++)
@@ -117,34 +124,85 @@ int main(int argc, char *argv[])
                 rule2buf(rules + i, rule_buf);
 
                 // Write buffer to rules device
-                fwrite(rule_buf, RULE_BUF_SIZE, 1, fw_file);
+                if (fwrite(rule_buf, RULE_BUF_SIZE, 1, fw_file) != 1)
+                {
+                    INFO("An writing error to rules device has occurred")
+                }
             }
 
-            INFO("Rules loaded successfuly")
+            INFO("The rules have been loaded successfuly")
             return EXIT_SUCCESS;
         }
 
-        else if (strcmp(command, "show_log") == 0) // Unhandled
+        else if (strcmp(command, "show_log") == 0)
         {
+            char log_row_buf[LOG_ROW_BUF_SIZE];
+            log_row_t log_row;
+            char log_row_str[MAX_RULE_LINE];
+
             INFO("Showing log...")
 
-            fw_file = fopen(LOG_DEV_PATH, "r");
+            fw_file = fopen(LOG_DEV_PATH, "rb");
+            if (fw_file == NULL)
+            {
+                INFO("Can't open (on read mode) log device in /dev")
+                return EXIT_FAILURE;
+            }
+
+            uint32_t rows_amount;
+            if (fread(&rows_amount, sizeof(uint32_t), 1, fw_file) != 1)
+            {
+                INFO("An reading error from log device has occurred")
+                return EXIT_FAILURE;
+            }
+            DINFO("Amount of rows in log: %d", rows_amount);
+
+            // Print the log headline to the user
+            log_headline(log_row_str);
+            printf("%s", log_row_str);
+
+            for (uint8_t i = 0; i < rows_amount; i++)
+            {
+                // Read buffer from log device
+                if (fread(log_row_buf, LOG_ROW_BUF_SIZE, 1, fw_file) != 1)
+                {
+                    INFO("An reading error from log device has occurred")
+                }
+
+                // Convert buffer to log_row struct
+                buf2log_row(&log_row, log_row_buf);
+
+                // Convert log_row struct to a human-readable string
+                log_row2str(&log_row, log_row_str);
+
+                // Print the string to the user
+                printf("%s", log_row_str);
+            }
 
             fclose(fw_file);
-
-            DINFO("unhandled")
             return EXIT_SUCCESS;
         }
 
-        else if (strcmp(command, "clear_log") == 0) // Unhandled
+        else if (strcmp(command, "clear_log") == 0)
         {
             INFO("Clearing log...")
 
             fw_file = fopen(LOG_SYS_PATH, "w");
+            if (fw_file == NULL)
+            {
+                INFO("Can't open (on write mode) log device in /sys")
+                return EXIT_FAILURE;
+            }
+
+            if (fputc('$', fw_file) == EOF)
+            {
+                INFO("An writing error to log device has occurred")
+                return EXIT_FAILURE;
+            }
 
             fclose(fw_file);
 
-            INFO("Log has been cleared")
+            INFO("The log has been cleared successfuly")
             return EXIT_SUCCESS;
         }
 

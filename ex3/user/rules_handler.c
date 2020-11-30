@@ -126,7 +126,7 @@ void fip2str(char *fip_str, const uint32_t ip, const uint8_t prefix_size)
     else
     {
         ip2str(ip_str, ip);
-        sprintf(ip_str, "%s/%d", ip_str, prefix_size);
+        sprintf(fip_str, "%s/%d", ip_str, prefix_size);
     }
 }
 
@@ -163,6 +163,7 @@ uint8_t str2fip(const char *fip_str, uint32_t *ip, uint8_t *prefix_size)
  */
 void rule2str(const rule_t *rule, char *str)
 {
+    // Allocate enough space
     char *direction, src_ip[30], dst_ip[30], *protocol, src_port[8], dst_port[8], *ack, *action;
 
     direction = direction2str(rule->direction);
@@ -184,6 +185,7 @@ void rule2str(const rule_t *rule, char *str)
  */
 uint8_t str2rule(rule_t *rule, const char *str)
 {
+    // Allocate enough space
     char direction[10], src_ip[30], dst_ip[30], protocol[10], src_port[10], dst_port[10], ack[10], action[10];
     uint8_t b_direction, b_src_ip, b_dst_ip, b_protocol, b_src_port, b_dst_port, b_ack, b_action;
     int check;

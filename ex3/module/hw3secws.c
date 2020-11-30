@@ -31,9 +31,9 @@ static int set_nf_hook(struct nf_hook_ops *my_op, enum nf_inet_hooks hook_num)
     // Initialize netfilter hook - this piece of code was taken from:
     // https://medium.com/bugbountywriteup/linux-kernel-communication-part-1-netfilter-hooks-15c07a5a5c4e
     my_op->hook = (nf_hookfn *)fw_filter; // hook function
-    my_op->hooknum = hook_num;               // received packets
-    my_op->pf = PF_INET;                     // IPv4
-    my_op->priority = NF_IP_PRI_FIRST;       // max hook priority
+    my_op->hooknum = hook_num;            // received packets
+    my_op->pf = PF_INET;                  // IPv4
+    my_op->priority = NF_IP_PRI_FIRST;    // max hook priority
 
     reg_error = nf_register_net_hook(&init_net, my_op);
     return reg_error;
@@ -139,7 +139,7 @@ static void unregister_log_dev(void)
  */
 static int __init hw3secws_init(void)
 {
-    // create sysfs class
+    // Create sysfs class
     sysfs_class = class_create(THIS_MODULE, CLASS_NAME);
     if (IS_ERR(sysfs_class))
     {
@@ -147,12 +147,14 @@ static int __init hw3secws_init(void)
         goto failed_class;
     }
 
+    // Register rules device
     if (register_rules_dev() != 0)
     {
         INFO("Failed to register rule devices")
         goto failed_log_reg;
     }
 
+    // Register log device
     if (register_log_dev() != 0)
     {
         INFO("Failed to register log devices")
@@ -191,7 +193,7 @@ static void __exit hw3secws_exit(void)
     unregister_rules_dev();
     class_destroy(sysfs_class);
 
-    DINFO("Exiting") 
+    DINFO("Exiting")
 }
 
 module_init(hw3secws_init);

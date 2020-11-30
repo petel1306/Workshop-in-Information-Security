@@ -130,6 +130,7 @@ bool_t is_rule_match(const packet_t *packet, const rule_t *rule)
  */
 void get_log_row(const packet_t *packet, log_row_t *log_row)
 {
+    // Fill the current time
     struct timespec ts;
     getnstimeofday(&ts);
     log_row->timestamp = ts.tv_sec;
@@ -138,10 +139,12 @@ void get_log_row(const packet_t *packet, log_row_t *log_row)
     log_row->dst_ip = packet->dst_ip;
     log_row->protocol = packet->protocol;
     log_row->src_port = packet->src_port;
-    log_row->dst_port = packet->dst_port;  
+    log_row->dst_port = packet->dst_port;
 
-    // action, reason fields will be entered according to the match
-    // count field may be irrelevant (in case the log entry already exists)
+    // Count field may be irrelevant (in case the log entry already exists)
+    log_row->count = 1;
+
+    // action, reason fields will be filled according to the match
 }
 
 /**
@@ -155,7 +158,7 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
 
     // Get the head of the rule table, and iterate over the rules
     // Note that we aren't supposed to change the rules here, hence the const keyword
-    const rule_t *const rule_table = get_rules();
+    const rule_t *const rules = get_rules();
     const rule_t *rule;
     __u8 rule_index;
 
@@ -191,9 +194,9 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
 
     for (rule_index = 0; rule_index < get_rules_amount(); rule_index++)
     {
-        rule = rule_table + rule_index;
+        rule = rules + rule_index;
 
-        if (is_rule_match(&packet, rule_table + rule_index))
+        if (is_rule_match(&packet, rules + rule_index))
         {
             // There is a match! Let's log the action
             __u8 verdict = rule->action;
