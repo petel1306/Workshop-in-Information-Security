@@ -30,7 +30,7 @@ static int set_nf_hook(struct nf_hook_ops *my_op, enum nf_inet_hooks hook_num)
     int reg_error;
     // Initialize netfilter hook - this piece of code was taken from:
     // https://medium.com/bugbountywriteup/linux-kernel-communication-part-1-netfilter-hooks-15c07a5a5c4e
-    my_op->hook = (nf_hookfn *)fw_filtering; // hook function
+    my_op->hook = (nf_hookfn *)fw_filter; // hook function
     my_op->hooknum = hook_num;               // received packets
     my_op->pf = PF_INET;                     // IPv4
     my_op->priority = NF_IP_PRI_FIRST;       // max hook priority

@@ -1,4 +1,5 @@
 #include "interface.h"
+#include "log_handler.h"
 #include "rules_handler.h"
 
 #define RULES_PATH "/sys/class/fw/rules/rules"
@@ -7,6 +8,9 @@
 
 const uint8_t RULE_BUF_SIZE =
     20 + sizeof(direction_t) + sizeof(ack_t) + 2 * sizeof(uint32_t) + 2 * sizeof(uint16_t) + 4 * sizeof(uint8_t);
+
+const uint8_t LOG_ROW_BUF_SIZE = sizeof(unsigned long) + 2 * sizeof(uint8_t) + 2 * sizeof(uint32_t) +
+                                 2 * sizeof(uint16_t) + sizeof(reason_t) + sizeof(unsigned int);
 
 int main(int argc, char *argv[])
 {

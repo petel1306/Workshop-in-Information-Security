@@ -80,17 +80,14 @@ typedef struct
     char rule_name[20]; // names will be no longer than 20 chars
     direction_t direction;
     __be32 src_ip;
-    __be32 src_prefix_mask; // e.g., 255.255.255.0 as int in the local endianness
-    __u8 src_prefix_size;   // valid values: 0-32, e.g., /24 for the example above
-                            // (the field is redundant - easier to print)
+    __u8 src_prefix_size; // valid values: 0-32, e.g., /24 for the example above
     __be32 dst_ip;
-    __be32 dst_prefix_mask; // as above
-    __u8 dst_prefix_size;   // as above
-    __be16 src_port;        // number of port or 0 for any or port 1023 for any port number > 1023
-    __be16 dst_port;        // number of port or 0 for any or port 1023 for any port number > 1023
-    __u8 protocol;          // values from: prot_t
-    ack_t ack;              // values from: ack_t
-    __u8 action;            // valid values: NF_ACCEPT, NF_DROP
+    __u8 dst_prefix_size; // as above
+    __be16 src_port;      // number of port or 0 for any or port 1023 for any port number > 1023
+    __be16 dst_port;      // number of port or 0 for any or port 1023 for any port number > 1023
+    __u8 protocol;        // values from: prot_t
+    ack_t ack;            // values from: ack_t
+    __u8 action;          // valid values: NF_ACCEPT, NF_DROP
 } rule_t;
 
 // various reasons to be registered in each log entry
@@ -98,16 +95,15 @@ typedef enum
 {
     REASON_FW_INACTIVE = -1,
     REASON_NO_MATCHING_RULE = -2,
-    REASON_XMAS_PACKET = -4,
-    REASON_ILLEGAL_VALUE = -6,
+    REASON_XMAS_PACKET = -4
 } reason_t;
 
 // logging
 typedef struct
 {
     unsigned long timestamp; // time of creation/update
-    unsigned char protocol;  // values from: prot_t
-    unsigned char action;    // valid values: NF_ACCEPT, NF_DROP
+    __u8 protocol;           // values from: prot_t
+    __u8 action;             // valid values: NF_ACCEPT, NF_DROP
     __be32 src_ip;           // if you use this struct in userspace, change the type to unsigned int
     __be32 dst_ip;           // if you use this struct in userspace, change the type to unsigned int
     __be16 src_port;         // if you use this struct in userspace, change the type to unsigned short

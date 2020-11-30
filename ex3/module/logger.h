@@ -3,7 +3,10 @@
 
 #include "fw.h"
 
-// Define device log operations
+// log a filtering action on a packet
+void log_action(log_row_t *log, __u8 action, reason_t reason);
+
+// Define log device operations
 int open_log(struct inode *_inode, struct file *_file);
 ssize_t read_log(struct file *filp, char *buf, size_t length, loff_t *offp);
 

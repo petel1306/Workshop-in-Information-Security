@@ -4,7 +4,7 @@ static unsigned int info_counter = 0;
 
 unsigned int get_info_counter(void)
 {
-    return info_counter++;
+    return ++info_counter;
 }
 
 /**

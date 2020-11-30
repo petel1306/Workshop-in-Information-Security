@@ -32,6 +32,6 @@ typedef struct
     packet_type_t type;
 } packet_t;
 
-packet_t *parse_packet(const struct sk_buff *skb, const struct nf_hook_state *state);
+void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_hook_state *state);
 
 #endif

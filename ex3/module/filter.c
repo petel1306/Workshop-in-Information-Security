@@ -1,11 +1,13 @@
 /*
 In this module the packet filtering is preformed.
 */
-
 #include "filter.h"
+#include "fw.h"
 #include "logger.h"
 #include "parser.h"
 #include "ruler.h"
+
+#include <linux/time.h>
 
 // Boolean evaluation: returns 1 (MATCH_TRUE) <--> X is non zero
 #define bool_val(X) ((X) ? 1 : 0)
@@ -121,11 +123,36 @@ bool_t is_rule_match(const packet_t *packet, const rule_t *rule)
     return MATCH_FALSE;
 }
 
+/*
+ * Create log_row template from a packet
+ * The struct (log_row_t) is returned in a statically allocated buffer,
+ * which subsequent filter calls will overwrite.
+ */
+void get_log_row(const packet_t *packet, log_row_t *log_row)
+{
+    struct timespec ts;
+    getnstimeofday(&ts);
+    log_row->timestamp = ts.tv_sec;
+
+    log_row->src_ip = packet->src_ip;
+    log_row->dst_ip = packet->dst_ip;
+    log_row->protocol = packet->protocol;
+    log_row->src_port = packet->src_port;
+    log_row->dst_port = packet->dst_port;  
+
+    // action, reason fields will be entered according to the match
+    // count field may be irrelevant (in case the log entry already exists)
+}
+
 /**
  * We perform here the packet filtering for each packet passing through the firewall
  */
-unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
+unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
+    // Allocate firewall structs
+    packet_t packet;
+    log_row_t log_row;
+
     // Get the head of the rule table, and iterate over the rules
     // Note that we aren't supposed to change the rules here, hence the const keyword
     const rule_t *const rule_table = get_rules();
@@ -133,10 +160,13 @@ unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_
     __u8 rule_index;
 
     // Get the required packet fields. The fields should not be changed throughout the filtering.
-    const packet_t *packet = parse_packet(skb, state);
+    parse_packet(&packet, skb, state);
+
+    // Get the log_row fields from the packet
+    get_log_row(&packet, &log_row);
 
     // Special actions: (depending on the packet's type)
-    switch (packet->type)
+    switch (packet.type)
     {
     case PACKET_TYPE_LOOPBACK:
         return NF_ACCEPT; // Accept any loopback (127.0.0.1/8) packet without logging it
@@ -145,17 +175,17 @@ unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_
         return NF_ACCEPT; // Accept any non TCP, UDP and ICMP protocol without logging it
 
     case PACKET_TYPE_XMAS:
-        // *** Log the action here, with reason: "reason_t.REASON_XMAS_PACKET" ***
+        log_action(&log_row, NF_DROP, REASON_XMAS_PACKET);
         return NF_DROP; // Drop any Christmas tree packet
 
     default:
         break; // This a regular packet (PACKET_REG). Let's look for a match with a rule!
     }
 
-    // If the rule table is inactive, then accept automatically. (and log the action)
+    // If the rule table is inactive, then accept automatically (and log the action).
     if (is_active_table() == INACTIVE)
     {
-        // *** Log the action here, with reason: "reason_t.REASON_FW_INACTIVE" ***
+        log_action(&log_row, NF_ACCEPT, REASON_FW_INACTIVE);
         return NF_ACCEPT;
     }
 
@@ -163,15 +193,16 @@ unsigned int fw_filtering(void *priv, struct sk_buff *skb, const struct nf_hook_
     {
         rule = rule_table + rule_index;
 
-        if (is_rule_match(packet, rule))
+        if (is_rule_match(&packet, rule_table + rule_index))
         {
+            // There is a match! Let's log the action
             __u8 verdict = rule->action;
-            // *** Log the action here, with reason: "rule_index" ***
+            log_action(&log_row, verdict, rule_index);
             return verdict;
         }
     }
 
     // In case no rule matched, we drop the packet
-    // *** Log the action here, with reason: "reason_t.REASON_NO_MATCHING_RULE" ***
+    log_action(&log_row, NF_DROP, REASON_NO_MATCHING_RULE);
     return NF_DROP;
 }

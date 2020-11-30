@@ -39,13 +39,17 @@ void buf2var(const char **buf_ptr, void *var, size_t n);
 #define STR2BUF(str, n) var2buf(&buf, str, n)
 #define BUF2STR(str, n) buf2var(&buf, str, n)
 
-// the protocols we will work with
-typedef enum
-{
-    PROT_ICMP = 1,
-    PROT_TCP = 6,
-    PROT_UDP = 17,
-    PROT_ANY = 143,
-} prot_t;
+// Conversion of objects to/ from strings
+char *action2str(const uint8_t action);
+uint8_t str2action(const char *str, uint8_t *action);
+
+char *protocol2str(const uint8_t protocol);
+uint8_t str2protocol(const char *str, uint8_t *protocol);
+
+void ip2str(char *ip_str, const uint32_t ip);
+uint8_t str2ip(const char *str, uint32_t *ip);
+
+void port2str(char *str_port, const uint16_t port);
+uint8_t str2port(const char *str_port, uint16_t *port);
 
 #endif
