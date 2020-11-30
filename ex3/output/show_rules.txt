@@ -1,8 +1,5 @@
 
-Firewall_user-1 debug: command = show_rules
-
-
-Firewall_user-2: Showing rules...
+Firewall_user-1: Showing rules...
 
 loopback              any  127.0.0.1/8         127.0.0.1/8         any   any    any    any  accept
 GW_attack             any  any                 10.0.2.15/32        any   any    any    any  drop  
