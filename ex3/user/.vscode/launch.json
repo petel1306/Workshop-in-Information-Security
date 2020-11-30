@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "gdb",
+            "request": "launch",
+            "name": "Debug",
+            "target": "./main",
+            "cwd": "${workspaceRoot}",
+            // "arguments": "show_rules"
+            // "arguments": "load_rules ./rules_example.txt"
+        }
+    ]
+}

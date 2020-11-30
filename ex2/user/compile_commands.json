@@ -1,0 +1,7 @@
+[
+    {
+        "command": "cc -c -O3 -Wall -std=c11 -o user.out /home/fw/project/ex2/user/user.c",
+        "directory": "/home/fw/project/ex2/user",
+        "file": "/home/fw/project/ex2/user/user.c"
+    }
+]
