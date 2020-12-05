@@ -10,6 +10,7 @@ In each directory you may find guidelines (i.e. descripition of each assignment)
 This workshop is ongoing and the git is keep updating.
 
 You may find more information about the workshop here:
+
 https://www.ims.tau.ac.il/Tal/Scans/Syllabus_Download.aspx?kurs=03683523&syllabus=kr_syllabus_s20201_k00_v00.pdf&dt=05122020120145
 
 http://course.cs.tau.ac.il//secws16/
