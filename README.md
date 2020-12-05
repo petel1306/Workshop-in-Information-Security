@@ -7,7 +7,7 @@ This workshop is offered in cooperation with industry experts from Check Point, 
 
 Each directory corresponds to an assignment (out of 5 assignments) which was given as part of the workshop.
 In each directory you may find guidelines (i.e. descripition of each assignment), and my solution for it (code & documantation).
-This workshop is ongoing and the git is keep updating.
+This workshop is ongoing and the git project keeps updating.
 
 You may find more information about the workshop here:
 
