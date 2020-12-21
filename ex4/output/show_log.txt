@@ -1,0 +1,10 @@
+
+Firewall_user-1 debug: command = show_log
+
+
+Firewall_user-2: Showing log...
+
+
+Firewall_user-3 debug: Amount of rows in log: 0
+
+timestamp            src_ip           dst_ip           src_port  dst_port  protocol  action  reason                   count
