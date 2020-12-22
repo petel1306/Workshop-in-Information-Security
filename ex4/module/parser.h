@@ -12,7 +12,9 @@ In this module we parse a socket buffer (packet).
 // Classifies packet's type
 typedef enum
 {
-    PACKET_TYPE_REG,
+    PACKET_TYPE_ICMP,
+    PACKET_TYPE_UDP,
+    PACKET_TYPE_TCP,
     PACKET_TYPE_LOOPBACK,
     PACKET_TYPE_OTHER_PROTOCOL,
     PACKET_TYPE_XMAS,

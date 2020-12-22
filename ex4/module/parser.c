@@ -42,7 +42,6 @@ void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_h
 
     // Initialize packet
     *packet = empty_packet;
-    packet->type = PACKET_TYPE_REG;
 
     // Get direction field
     packet->direction = get_direction(state);
@@ -64,10 +63,12 @@ void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_h
     switch (packet->protocol)
     {
     case PROT_ICMP:
+        packet->type = PACKET_TYPE_ICMP;
         // Do nothing
         break;
 
     case PROT_TCP: {
+        packet->type = PACKET_TYPE_TCP;
         // Get TCP port fields
         packet_tcp_header = tcp_hdr(skb);
         packet->src_port = ntohs(packet_tcp_header->source);
@@ -86,6 +87,7 @@ void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_h
     }
 
     case PROT_UDP: {
+        packet->type = PACKET_TYPE_UDP;
         // Get UDP port fields
         packet_udp_header = udp_hdr(skb);
         packet->src_port = ntohs(packet_udp_header->source);

@@ -95,7 +95,8 @@ typedef enum
 {
     REASON_FW_INACTIVE = -1,
     REASON_NO_MATCHING_RULE = -2,
-    REASON_XMAS_PACKET = -4
+    REASON_XMAS_PACKET = -4,
+    REASON_TCP_STREAM_ENFORCE = -8
 } reason_t;
 
 // logging

@@ -55,7 +55,7 @@ static void empty_pool(void)
 __u8 log_match(log_row_t *lr1, log_row_t *lr2)
 {
     return lr1->src_ip == lr2->src_ip && lr1->dst_ip == lr2->dst_ip && lr1->protocol == lr2->protocol &&
-           lr1->src_port == lr2->src_port && lr1->dst_port == lr2->dst_port && lr1->reason == lr2->reason;
+           lr1->src_port == lr2->src_port && lr1->dst_port == lr2->dst_port;
 }
 
 /**

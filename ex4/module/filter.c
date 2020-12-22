@@ -6,6 +6,7 @@ In this module the packet filtering is preformed.
 #include "logger.h"
 #include "parser.h"
 #include "ruler.h"
+#include "tracker.h"
 
 #include <linux/time.h>
 
@@ -162,6 +163,10 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
     const rule_t *rule;
     __u8 rule_index;
 
+    // Get TCP header
+    struct tcphdr *tcph = tcp_hdr(skb);
+    unsigned int is_syn = tcph->syn && !tcph->ack;
+
     // Get the required packet fields. The fields should not be changed throughout the filtering.
     parse_packet(&packet, skb, state);
 
@@ -182,7 +187,33 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
         return NF_DROP; // Drop any Christmas tree packet
 
     default:
-        break; // This a regular packet (PACKET_REG). Let's look for a match with a rule!
+        break; // This a regular packet. Let's look for a match with a rule!
+    }
+
+    // Stateful inspection logic
+    if (packet.type == PACKET_TYPE_TCP && !is_syn)
+    {
+        connection_t *conn = get_connection(&packet);
+        int ret;
+
+        if (conn == NULL) // connection doesn't exist
+        {
+            log_action(&log_row, NF_DROP, REASON_TCP_STREAM_ENFORCE);
+            return NF_DROP;
+        }
+
+        ret = enforce_state(tcph, packet.direction, &conn->state);
+        switch (ret)
+        {
+        case 2:
+            remove_connection(conn);
+        case 0:
+            log_action(&log_row, NF_ACCEPT, REASON_TCP_STREAM_ENFORCE);
+            return NF_ACCEPT;
+        case 1:
+            log_action(&log_row, NF_DROP, REASON_TCP_STREAM_ENFORCE);
+            return NF_DROP;
+        }
     }
 
     // If the rule table is inactive, then accept automatically (and log the action).
@@ -201,6 +232,13 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
             // There is a match! Let's log the action
             __u8 verdict = rule->action;
             log_action(&log_row, verdict, rule_index);
+
+            // If TCP packet --> SYN packet
+            if (verdict == NF_ACCEPT && packet.type == PACKET_TYPE_TCP)
+            {
+                add_connection(&packet);
+            }
+
             return verdict;
         }
     }
