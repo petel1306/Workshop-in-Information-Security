@@ -1,2 +1,2 @@
-cd /home/fw/project/ex3
+cd /home/fw/project/ex4
 ./user/main show_conns > ./output/show_conns.txt

@@ -1,3 +1,4 @@
+dmesg -c
 clear
 cd /home/fw/project
 chmod -R 777 ex4

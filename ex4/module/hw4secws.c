@@ -96,7 +96,7 @@ static void unregister_rules_dev(void)
 
 static struct file_operations log_ops = {.owner = THIS_MODULE, .open = open_log, .read = read_log};
 
-static DEVICE_ATTR(reset, S_IWUSR | S_IRUGO, NULL, reset_log);
+static DEVICE_ATTR(reset, S_IWUSR, NULL, reset_log);
 
 static int register_log_dev(void)
 {
@@ -150,7 +150,7 @@ ssize_t conns(struct device *dev, struct device_attribute *attr, char *buf)
     return csize;
 }
 
-static DEVICE_ATTR(conns, S_IWUSR | S_IRUGO, conns, NULL);
+static DEVICE_ATTR(conns, S_IRUGO, conns, NULL);
 
 static int register_conn_dev(void)
 {
