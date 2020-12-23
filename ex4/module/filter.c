@@ -193,8 +193,11 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
     // Stateful inspection logic
     if (packet.type == PACKET_TYPE_TCP && !is_syn)
     {
-        connection_t *conn = get_connection(&packet);
+        connection_t *conn = find_connection(&packet);
         int ret;
+
+        DINFO("http filter: src_ip=%d, src_port=%d, dst_ip=%d, dst_port=%d, syn=%d, ack=%d, fin=%d", packet.src_ip,
+              packet.src_port, packet.dst_ip, packet.dst_port, tcph->syn, tcph->ack, tcph->fin)
 
         if (conn == NULL) // connection doesn't exist
         {
@@ -202,7 +205,14 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
             return NF_DROP;
         }
 
+        DINFO("Before enforcing: %s, Expect %s", conn_status_str(conn->state.status),
+              conn_status_str(conn->state.expected_direction));
+
         ret = enforce_state(tcph, packet.direction, &conn->state);
+
+        DINFO("After enforcing: %s, Expect %s", conn_status_str(conn->state.status),
+              conn_status_str(conn->state.expected_direction));
+
         switch (ret)
         {
         case 2:
@@ -232,6 +242,10 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
             // There is a match! Let's log the action
             __u8 verdict = rule->action;
             log_action(&log_row, verdict, rule_index);
+
+            INFO("static filter : src_ip = % d, src_port = % d, protocol = %d, dst_ip = % d, dst_port = % d, rule "
+                 "index = %d",
+                 packet.src_ip, packet.src_port, packet.protocol, packet.dst_ip, packet.dst_port, rule_index)
 
             // If TCP packet --> SYN packet
             if (verdict == NF_ACCEPT && packet.type == PACKET_TYPE_TCP)

@@ -41,7 +41,7 @@ void add_connection(packet_t *packet)
     connections_amount++;
 }
 
-connection_t *get_connection(packet_t *packet)
+connection_t *find_connection(packet_t *packet)
 {
     connection_t *conn;
     list_for_each_entry(conn, &ctable, list_node)
@@ -87,7 +87,7 @@ void free_connections(void)
  * returns 1 if the tcp packet state is unvalid
  * returns 2 if the connection has ended
  */
-int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, state_t *state)
+int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state)
 {
     if (packet_direction & state->expected_direction)
     {
@@ -168,4 +168,134 @@ int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, state
         }
     }
     return 1;
+}
+
+static const char *conn_status_str(tcp_status_t status)
+{
+    /* For debug logs, return state as string */
+    switch (status)
+    {
+    case SYN:
+        return "SYN sent";
+    case SYN_ACK:
+        return "SYN ACK sent";
+    case ESTABLISHED:
+        return "ACK sent, conn ESTABLISHED";
+    case FIN1:
+        return "fin1 sent";
+    case A_ACK:
+        return "case A - ack for fin1 sent";
+    case A_FIN2:
+        return "case A - fin2 sent";
+    case B_FIN2:
+        return "case B - fin2 sent";
+    case B_ACK:
+        return "case B - ack some fin";
+    }
+}
+
+/*
+ * For debug purposes
+ */
+static const char *conn_direction_str(direction_t direction)
+{
+    switch (direction)
+    {
+    case DIRECTION_NONE:
+        return "none";
+    case DIRECTION_IN:
+        return "in";
+    case DIRECTION_OUT:
+        return "out";
+    case DIRECTION_ANY:
+        return "any";
+    }
+}
+
+/*
+ * Status to be shown to the user
+ */
+typedef enum
+{
+    STATE_INITIATING,
+    STATE_ONGOING,
+    STATE_CLOSING
+} public_state_t;
+
+public_state_t state2public(tcp_state_t state)
+{
+    switch (state.status)
+    {
+    case SYN:
+    case SYN_ACK:
+        return STATE_INITIATING;
+    case ESTABLISHED:
+        return STATE_ONGOING;
+    default:
+        return STATE_CLOSING;
+    }
+}
+
+const __u8 CONN_BUF_SIZE = 2 * sizeof(__be32) + 2 * sizeof(__be16) + sizeof(public_state_t);
+const __u8 AMOUNT_BUF_SIZE = sizeof(connections_amount);
+
+void conn2buf(const connection_t *conn, char *buf)
+{
+    public_state_t pub_state = state2public(conn->state);
+    VAR2BUF(conn->internal_id.ip);
+    VAR2BUF(conn->internal_id.port);
+    VAR2BUF(conn->external_id.ip);
+    VAR2BUF(conn->external_id.port);
+    VAR2BUF(pub_state);
+}
+
+static __u8 is_ammount_passed;
+static connection_t *read_conn;
+
+int open_ctable(struct inode *_inode, struct file *_file)
+{
+    read_conn = list_first_entry(&ctable, connection_t, list_node);
+    is_ammount_passed = 0;
+    return 0;
+}
+
+ssize_t read_ctable(struct file *filp, char *buf, size_t length, loff_t *offp)
+{
+    char my_buf[CONN_BUF_SIZE];
+    int count = 0;
+
+    if (!is_ammount_passed)
+    {
+        if (length < AMOUNT_BUF_SIZE)
+        {
+            return 0;
+        }
+
+        if (copy_to_user(buf, &connections_amount, AMOUNT_BUF_SIZE))
+        {
+            return -EFAULT;
+        }
+
+        count += AMOUNT_BUF_SIZE;
+        length -= AMOUNT_BUF_SIZE;
+        is_ammount_passed = 1;
+    }
+
+    list_for_each_entry_continue(read_conn, &ctable, list_node)
+    {
+        if (length < CONN_BUF_SIZE)
+        {
+            break;
+        }
+
+        conn2buf(read_conn, my_buf);
+        if (copy_to_user(buf + count, my_buf, CONN_BUF_SIZE))
+        {
+            return -EFAULT;
+        }
+
+        count += CONN_BUF_SIZE;
+        length -= CONN_BUF_SIZE;
+    }
+    return count;
 }

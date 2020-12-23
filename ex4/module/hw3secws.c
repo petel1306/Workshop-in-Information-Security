@@ -2,6 +2,7 @@
 #include "fw.h"
 #include "logger.h"
 #include "ruler.h"
+#include "tracker.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Ori Petel");
@@ -9,14 +10,18 @@ MODULE_AUTHOR("Ori Petel");
 #define CLASS_NAME "fw"
 #define MAJOR_NAME_RULE "fw-chardev1"
 #define MAJOR_NAME_LOG "fw-chardev2"
+#define MAJOR_NAME_CONN "fw-chardev3"
 #define DEVICE_NAME_RULE "rules"
 #define DEVICE_NAME_LOG "fw_log"
+#define DEVICE_NAME_CONN "conns"
 
 static int rules_major;
 static int log_major;
+static int conn_major;
 static struct class *sysfs_class = NULL;
 static struct device *rules_dev = NULL;
 static struct device *log_dev = NULL;
+static struct device *conn_dev = NULL;
 
 // Allocating struct to hold forward hook_op
 static struct nf_hook_ops nf_forward_op;
@@ -132,6 +137,42 @@ static void unregister_log_dev(void)
     unregister_chrdev(log_major, MAJOR_NAME_LOG);
 }
 
+/*
+ * Connections device registartion procedure :
+ */
+
+static struct file_operations conn_ops = {.owner = THIS_MODULE, .open = open_ctable, .read = read_ctable};
+
+static int register_conn_dev(void)
+{
+    // create char device
+    conn_major = register_chrdev(0, MAJOR_NAME_CONN, &conn_ops);
+    if (conn_major < 0)
+    {
+        goto failed_conn_major;
+    }
+
+    // create sysfs device - acced from sysfs
+    conn_dev = device_create(sysfs_class, NULL, MKDEV(conn_major, 0), NULL, DEVICE_NAME_CONN);
+    if (IS_ERR(conn_dev))
+    {
+        goto failed_conn_device;
+    }
+
+    return 0;
+
+failed_conn_device:
+    unregister_chrdev(conn_major, MAJOR_NAME_CONN);
+failed_conn_major:
+    return -1;
+}
+
+static void unregister_conn_dev(void)
+{
+    device_destroy(sysfs_class, MKDEV(conn_major, 0));
+    unregister_chrdev(conn_major, MAJOR_NAME_CONN);
+}
+
 /**
  * Initialize module:
  * 1. Register char devices using sysfs API.
@@ -161,6 +202,13 @@ static int __init hw3secws_init(void)
         goto failed_rule_reg;
     }
 
+    // Register connection device
+    if (register_conn_dev() != 0)
+    {
+        INFO("Failed to register connection devices")
+        goto failed_conn_reg;
+    }
+
     // Register hook at Net Filter forward point
     if (set_nf_hook(&nf_forward_op, NF_INET_FORWARD) != 0)
     {
@@ -173,6 +221,8 @@ static int __init hw3secws_init(void)
     return 0;
 
 // Terminating in case of registration error
+failed_conn_reg:
+    unregister_conn_dev();
 failed_hook:
     unregister_log_dev();
 failed_log_reg:
@@ -187,11 +237,13 @@ static void __exit hw3secws_exit(void)
 {
     // Release resources at exiting - free acquired memory
     free_log();
+    free_connections();
 
     // Release resources at exiting - unregister the hook
     nf_unregister_net_hook(&init_net, &nf_forward_op);
 
     // Release resources at exiting - unregister char devices
+    unregister_conn_dev();
     unregister_log_dev();
     unregister_rules_dev();
     class_destroy(sysfs_class);

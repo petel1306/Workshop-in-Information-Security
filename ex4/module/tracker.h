@@ -17,13 +17,13 @@ typedef enum
     A_FIN2,
     B_FIN2,
     B_ACK,
-} status_t;
+} tcp_status_t;
 
 typedef struct
 {
-    status_t status;
+    tcp_status_t status;
     direction_t expected_direction;
-} state_t;
+} tcp_state_t;
 
 typedef struct
 {
@@ -35,16 +35,25 @@ typedef struct
 {
     id_t internal_id; // internal id
     id_t external_id; // external id
-    state_t state;
+    tcp_state_t state;
 
     struct list_head list_node;
 } connection_t;
 
 void add_connection(packet_t *packet);
-connection_t *get_connection(packet_t *packet);
+connection_t *find_connection(packet_t *packet);
 void remove_connection(connection_t *connection);
 void free_connections(void);
 
-int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, state_t *state);
+// For debug purposes
+static const char *conn_status_str(tcp_status_t status);
+static const char *direction_str(direction_t direction);
+
+// Enforcing TCP states' validity
+int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state);
+
+// Define connections device operations
+int open_ctable(struct inode *_inode, struct file *_file);
+ssize_t read_ctable(struct file *filp, char *buf, size_t length, loff_t *offp);
 
 #endif
