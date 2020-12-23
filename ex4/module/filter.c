@@ -205,13 +205,11 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
             return NF_DROP;
         }
 
-        DINFO("Before enforcing: %s, Expect %s", conn_status_str(conn->state.status),
-              conn_status_str(conn->state.expected_direction));
+        DINFO("Before enforcing: %s, Expect %s", conn_status_str(conn->state.status), direction_str(conn->state.expected_direction));
 
         ret = enforce_state(tcph, packet.direction, &conn->state);
 
-        DINFO("After enforcing: %s, Expect %s", conn_status_str(conn->state.status),
-              conn_status_str(conn->state.expected_direction));
+        DINFO("After enforcing: %s, Expect %s", conn_status_str(conn->state.status), direction_str(conn->state.expected_direction));
 
         switch (ret)
         {

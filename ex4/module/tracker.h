@@ -46,14 +46,13 @@ void remove_connection(connection_t *connection);
 void free_connections(void);
 
 // For debug purposes
-static const char *conn_status_str(tcp_status_t status);
-static const char *direction_str(direction_t direction);
+const char *conn_status_str(tcp_status_t status);
+const char *direction_str(direction_t direction);
 
 // Enforcing TCP states' validity
 int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state);
 
 // Define connections device operations
-int open_ctable(struct inode *_inode, struct file *_file);
-ssize_t read_ctable(struct file *filp, char *buf, size_t length, loff_t *offp);
+ssize_t ctable2buf(char *buf);
 
 #endif

@@ -141,7 +141,16 @@ static void unregister_log_dev(void)
  * Connections device registartion procedure :
  */
 
-static struct file_operations conn_ops = {.owner = THIS_MODULE, .open = open_ctable, .read = read_ctable};
+static struct file_operations conn_ops = {.owner = THIS_MODULE};
+
+ssize_t show_cons(struct device *dev, struct device_attribute *attr, char *buf)
+{
+    ssize_t csize = ctable2buf(buf);
+    buf += csize;
+    return csize;
+}
+
+static DEVICE_ATTR(conns, S_IWUSR | S_IRUGO, show_cons, NULL);
 
 static int register_conn_dev(void)
 {
@@ -159,8 +168,15 @@ static int register_conn_dev(void)
         goto failed_conn_device;
     }
 
+    if (device_create_file(conn_dev, (const struct device_attribute *)&dev_attr_conns.attr))
+    {
+        goto failed_conn_file;
+    }
+
     return 0;
 
+failed_conn_file:
+    device_destroy(sysfs_class, MKDEV(conn_major, 0));
 failed_conn_device:
     unregister_chrdev(conn_major, MAJOR_NAME_CONN);
 failed_conn_major:
@@ -169,6 +185,7 @@ failed_conn_major:
 
 static void unregister_conn_dev(void)
 {
+    device_remove_file(conn_dev, (const struct device_attribute *)&dev_attr_conns.attr);
     device_destroy(sysfs_class, MKDEV(conn_major, 0));
     unregister_chrdev(conn_major, MAJOR_NAME_CONN);
 }

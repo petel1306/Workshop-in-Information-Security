@@ -14,7 +14,7 @@ typedef struct
     struct list_head list_node;
 } log_entry_t;
 
-LIST_HEAD(log);        // The head of log linked list
+static LIST_HEAD(log); // The head of log linked list
 __u32 rows_amount = 0; // The amount of log rows/ entries
 
 // Implement a pool of free memory instead allocate each time
@@ -118,7 +118,7 @@ void free_log(void)
 const __u8 LOG_ROW_BUF_SIZE = sizeof(unsigned long) + 2 * sizeof(__u8) + 2 * sizeof(__be32) + 2 * sizeof(__be16) +
                               sizeof(reason_t) + sizeof(unsigned int);
 
-const __u8 AMOUNT_BUF_SIZE = sizeof(rows_amount);
+const __u8 LAMOUNT_SIZE = sizeof(rows_amount);
 
 log_entry_t *read_entry;
 static __u8 is_ammount_passed;
@@ -138,7 +138,7 @@ void log2buf(const log_row_t *log, char *buf)
 
 int open_log(struct inode *_inode, struct file *_file)
 {
-    read_entry = NULL;
+    read_entry = list_first_entry(&log, log_entry_t, list_node);
     is_ammount_passed = 0;
     return 0;
 }
@@ -150,57 +150,37 @@ ssize_t read_log(struct file *filp, char *buf, size_t length, loff_t *offp)
 
     if (!is_ammount_passed)
     {
-        if (length < AMOUNT_BUF_SIZE)
+        if (length < LAMOUNT_SIZE)
         {
             return 0;
         }
 
-        if (copy_to_user(buf, &rows_amount, AMOUNT_BUF_SIZE))
+        if (copy_to_user(buf, &rows_amount, LAMOUNT_SIZE))
         {
             return -EFAULT;
         }
 
-        count += AMOUNT_BUF_SIZE;
-        length -= AMOUNT_BUF_SIZE;
+        count += LAMOUNT_SIZE;
+        length -= LAMOUNT_SIZE;
         is_ammount_passed = 1;
     }
 
-    if (read_entry == NULL)
+    list_for_each_entry_continue(read_entry, &log, list_node)
     {
-        list_for_each_entry(read_entry, &log, list_node)
+        if (length < LOG_ROW_BUF_SIZE)
         {
-            if (length < LOG_ROW_BUF_SIZE)
-            {
-                break;
-            }
-
-            log2buf(&read_entry->log_row, my_buf);
-            if (copy_to_user(buf + count, my_buf, LOG_ROW_BUF_SIZE))
-            {
-                return -EFAULT;
-            }
-            count += LOG_ROW_BUF_SIZE;
-            length -= LOG_ROW_BUF_SIZE;
+            break;
         }
-    }
-    else
-    {
-        list_for_each_entry_continue(read_entry, &log, list_node)
+
+        log2buf(&read_entry->log_row, my_buf);
+        if (copy_to_user(buf + count, my_buf, LOG_ROW_BUF_SIZE))
         {
-            if (length < LOG_ROW_BUF_SIZE)
-            {
-                break;
-            }
-
-            log2buf(&read_entry->log_row, my_buf);
-            if (copy_to_user(buf + count, my_buf, LOG_ROW_BUF_SIZE))
-            {
-                return -EFAULT;
-            }
-            count += LOG_ROW_BUF_SIZE;
-            length -= LOG_ROW_BUF_SIZE;
+            return -EFAULT;
         }
+        count += LOG_ROW_BUF_SIZE;
+        length -= LOG_ROW_BUF_SIZE;
     }
+
     return count;
 }
 

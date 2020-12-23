@@ -1,8 +1,8 @@
 #include "tracker.h"
 #include "fw.h"
 
-LIST_HEAD(ctable);
-static unsigned int connections_amount;
+static LIST_HEAD(ctable);
+static __u32 connections_amount = 0;
 
 direction_t flip_direction(direction_t direction)
 {
@@ -170,9 +170,11 @@ int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_s
     return 1;
 }
 
-static const char *conn_status_str(tcp_status_t status)
+/*
+ * For debug purposes
+ */
+const char *conn_status_str(tcp_status_t status)
 {
-    /* For debug logs, return state as string */
     switch (status)
     {
     case SYN:
@@ -192,12 +194,13 @@ static const char *conn_status_str(tcp_status_t status)
     case B_ACK:
         return "case B - ack some fin";
     }
+    return "";
 }
 
 /*
  * For debug purposes
  */
-static const char *conn_direction_str(direction_t direction)
+const char *direction_str(direction_t direction)
 {
     switch (direction)
     {
@@ -210,6 +213,7 @@ static const char *conn_direction_str(direction_t direction)
     case DIRECTION_ANY:
         return "any";
     }
+    return "";
 }
 
 /*
@@ -237,7 +241,7 @@ public_state_t state2public(tcp_state_t state)
 }
 
 const __u8 CONN_BUF_SIZE = 2 * sizeof(__be32) + 2 * sizeof(__be16) + sizeof(public_state_t);
-const __u8 AMOUNT_BUF_SIZE = sizeof(connections_amount);
+const __u8 CAMOUNT_SIZE = sizeof(connections_amount);
 
 void conn2buf(const connection_t *conn, char *buf)
 {
@@ -249,53 +253,17 @@ void conn2buf(const connection_t *conn, char *buf)
     VAR2BUF(pub_state);
 }
 
-static __u8 is_ammount_passed;
-static connection_t *read_conn;
-
-int open_ctable(struct inode *_inode, struct file *_file)
+ssize_t ctable2buf(char *buf)
 {
-    read_conn = list_first_entry(&ctable, connection_t, list_node);
-    is_ammount_passed = 0;
-    return 0;
-}
+    connection_t *conn;
 
-ssize_t read_ctable(struct file *filp, char *buf, size_t length, loff_t *offp)
-{
-    char my_buf[CONN_BUF_SIZE];
-    int count = 0;
+    VAR2BUF(connections_amount);
 
-    if (!is_ammount_passed)
+    list_for_each_entry(conn, &ctable, list_node)
     {
-        if (length < AMOUNT_BUF_SIZE)
-        {
-            return 0;
-        }
-
-        if (copy_to_user(buf, &connections_amount, AMOUNT_BUF_SIZE))
-        {
-            return -EFAULT;
-        }
-
-        count += AMOUNT_BUF_SIZE;
-        length -= AMOUNT_BUF_SIZE;
-        is_ammount_passed = 1;
+        conn2buf(conn, buf);
+        buf += CONN_BUF_SIZE;
     }
 
-    list_for_each_entry_continue(read_conn, &ctable, list_node)
-    {
-        if (length < CONN_BUF_SIZE)
-        {
-            break;
-        }
-
-        conn2buf(read_conn, my_buf);
-        if (copy_to_user(buf + count, my_buf, CONN_BUF_SIZE))
-        {
-            return -EFAULT;
-        }
-
-        count += CONN_BUF_SIZE;
-        length -= CONN_BUF_SIZE;
-    }
-    return count;
+    return CAMOUNT_SIZE + connections_amount * CONN_BUF_SIZE;
 }
