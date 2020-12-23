@@ -21,7 +21,7 @@ unsigned int get_info_counter(void);
 /*
  * Print debug messages to the user (in case DEBUG is defined)
  */
-// #define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 #define DCOM(command) command // Debug command

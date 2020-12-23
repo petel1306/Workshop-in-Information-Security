@@ -45,7 +45,7 @@ static int set_nf_hook(struct nf_hook_ops *my_op, enum nf_inet_hooks hook_num)
 }
 
 /*
- * Rules device registartion procedure :
+ * Rule device registartion procedure :
  */
 
 static struct file_operations rule_ops = {.owner = THIS_MODULE};
@@ -219,10 +219,10 @@ static int __init hw3secws_init(void)
         goto failed_rule_reg;
     }
 
-    // Register connection device
+    // Register connections device
     if (register_conn_dev() != 0)
     {
-        INFO("Failed to register connection devices")
+        INFO("Failed to register connections devices")
         goto failed_conn_reg;
     }
 
