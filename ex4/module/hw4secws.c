@@ -143,14 +143,14 @@ static void unregister_log_dev(void)
 
 static struct file_operations conn_ops = {.owner = THIS_MODULE};
 
-ssize_t show_cons(struct device *dev, struct device_attribute *attr, char *buf)
+ssize_t conns(struct device *dev, struct device_attribute *attr, char *buf)
 {
     ssize_t csize = ctable2buf(buf);
     buf += csize;
     return csize;
 }
 
-static DEVICE_ATTR(conns, S_IWUSR | S_IRUGO, show_cons, NULL);
+static DEVICE_ATTR(conns, S_IWUSR | S_IRUGO, conns, NULL);
 
 static int register_conn_dev(void)
 {
@@ -238,9 +238,9 @@ static int __init hw3secws_init(void)
     return 0;
 
 // Terminating in case of registration error
-failed_conn_reg:
-    unregister_conn_dev();
 failed_hook:
+    unregister_conn_dev();
+failed_conn_reg:
     unregister_log_dev();
 failed_log_reg:
     unregister_rules_dev();
