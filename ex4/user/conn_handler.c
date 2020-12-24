@@ -35,8 +35,8 @@ void conn2str(const connection_t *conn, char *str)
 
     ip2str(src_ip, conn->internal_ip);
     ip2str(dst_ip, conn->external_ip);
-    port2str(src_port, conn->internal_port);
-    port2str(dst_port, conn->external_port);
+    sprintf(src_port, "%u", conn->internal_port);
+    sprintf(dst_port, "%u", conn->external_port);
     state2str(state, conn->state);
 
     sprintf(str, conn_format, src_ip, dst_ip, src_port, dst_port, state);

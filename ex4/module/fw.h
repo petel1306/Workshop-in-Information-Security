@@ -34,6 +34,8 @@ unsigned int get_info_counter(void);
 #define DSHOW(var)
 #endif
 
+#define IP_PARTS(ip) (ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF
+
 /**
  * Copy var to buffer, and increment the pointer of the bufer
  */

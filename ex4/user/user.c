@@ -6,7 +6,7 @@
 #define RULES_PATH "/sys/class/fw/rules/rules"
 #define LOG_SYS_PATH "/sys/class/fw/fw_log/reset"
 #define LOG_DEV_PATH "/dev/fw_log"
-#define CONN_SYS_PATH "sys/class/conns/conns"
+#define CONN_SYS_PATH "/sys/class/fw/conns/conns"
 
 // Just to make sure :)
 #define MAX_RULE_LINE 200
@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
             return EXIT_SUCCESS;
         }
 
-        else if (strcmp(command, "show_conns"))
+        else if (strcmp(command, "show_conns") == 0)
         {
             char conn_buf[CONN_BUF_SIZE];
             connection_t conn;

@@ -6,8 +6,8 @@ In this module we parse a socket buffer (packet).
 
 #include "fw.h"
 
-#define IN_NET_DEVICE_NAME "enp0s8"
-#define OUT_NET_DEVICE_NAME "enp0s9"
+#define OUT_NET_DEVICE_NAME "enp0s8"
+#define IN_NET_DEVICE_NAME "enp0s9"
 
 // Classifies packet's type
 typedef enum

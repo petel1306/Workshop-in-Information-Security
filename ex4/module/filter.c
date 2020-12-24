@@ -196,20 +196,23 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
         connection_t *conn = find_connection(&packet);
         int ret;
 
-        DINFO("http filter: src_ip=%d, src_port=%d, dst_ip=%d, dst_port=%d, syn=%d, ack=%d, fin=%d", packet.src_ip,
-              packet.src_port, packet.dst_ip, packet.dst_port, tcph->syn, tcph->ack, tcph->fin)
-
         if (conn == NULL) // connection doesn't exist
         {
             log_action(&log_row, NF_DROP, REASON_TCP_STREAM_ENFORCE);
             return NF_DROP;
         }
 
-        DINFO("Before enforcing: %s, Expect %s", conn_status_str(conn->state.status), direction_str(conn->state.expected_direction));
+        DINFO("Before enforcing: %s, Expect %s", conn_status_str(conn->state.status),
+              direction_str(conn->state.expected_direction));
+
+        DINFO("http filter: direction=%s, src_ip=%d.%d.%d.%d, src_port=%d, dst_ip=%d.%d.%d.%d, dst_port=%d, syn=%d, "
+              "ack=%d, fin=%d",
+              direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port, IP_PARTS(packet.dst_ip),
+              packet.dst_port, tcph->syn, tcph->ack, tcph->fin)
 
         ret = enforce_state(tcph, packet.direction, &conn->state);
 
-        DINFO("After enforcing: %s, Expect %s", conn_status_str(conn->state.status), direction_str(conn->state.expected_direction));
+        DINFO("Enforce answer: %d", ret)
 
         switch (ret)
         {
@@ -241,13 +244,15 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
             __u8 verdict = rule->action;
             log_action(&log_row, verdict, rule_index);
 
-            INFO("static filter : src_ip = % d, src_port = % d, protocol = %d, dst_ip = % d, dst_port = % d, rule "
-                 "index = %d",
-                 packet.src_ip, packet.src_port, packet.protocol, packet.dst_ip, packet.dst_port, rule_index)
+            INFO("static filter : direction=%s, src_ip = %d.%d.%d.%d, src_port = % d, dst_ip = %d.%d.%d.%d, dst_port = "
+                 "% d, protocol = %d, rule_index = %d",
+                 direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port, IP_PARTS(packet.dst_ip),
+                 packet.dst_port, packet.protocol, rule_index)
 
             // If TCP packet --> SYN packet
             if (verdict == NF_ACCEPT && packet.type == PACKET_TYPE_TCP)
             {
+                INFO("Creates tcp connection: syn=%d, ack=%d, fin=%d", tcph->syn, tcph->ack, tcph->fin)
                 add_connection(&packet);
             }
 

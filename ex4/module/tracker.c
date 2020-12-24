@@ -120,6 +120,11 @@ int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_s
             return 0;
 
         case FIN1:
+            if (tcph->fin && tcph->ack) {
+                state->status = A_FIN2;
+                state->expected_direction = flip_direction(packet_direction);
+                return 0;
+            }
             if (tcph->ack)
             {
                 state->status = A_ACK;

@@ -1,10 +1,3 @@
-
-Firewall_user-1 debug: command = show_log
-
-
-Firewall_user-2: Showing log...
-
-
-Firewall_user-3 debug: Amount of rows in log: 0
-
-timestamp            src_ip           dst_ip           src_port  dst_port  protocol  action  reason                   count
+timestamp            src_ip           dst_ip           src_port  dst_port  protocol  action  reason                    count
+12/23/2020 13:39:24  10.1.2.2         10.1.1.1         0         0         ICMP      accept  6                         3
+12/23/2020 13:39:24  10.1.1.1         10.1.2.2         0         0         ICMP      accept  6                         3
