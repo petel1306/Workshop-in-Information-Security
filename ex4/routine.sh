@@ -1,4 +1,5 @@
 dmesg -c
+echo 1 > /proc/sys/net/ipv4/ip_forward
 clear
 cd /home/fw/project
 chmod -R 777 ex4
