@@ -17,11 +17,22 @@ direction_t flip_direction(direction_t direction)
     return direction;
 }
 
-void add_connection(packet_t *packet)
+void pre_state(tcp_state_t *state)
+{
+    state->status = PRESYN;
+    state->expected_direction = DIRECTION_ANY;
+}
+
+void init_state(tcp_state_t *state, const packet_t *packet)
+{
+    state->status = SYN;
+    state->expected_direction = flip_direction(packet->direction);
+}
+
+void add_connection(const packet_t *packet)
 {
     connection_t *new_connection = (connection_t *)kmalloc(sizeof(connection_t), GFP_KERNEL);
-    new_connection->state.status = SYN;
-    new_connection->state.expected_direction = flip_direction(packet->direction);
+    init_state(&new_connection->state, packet);
     if (packet->direction == DIRECTION_OUT)
     {
         new_connection->internal_id.ip = packet->src_ip;
@@ -89,10 +100,20 @@ void free_connections(void)
  */
 int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state)
 {
+    if (tcph->rst)
+    {
+        return 2;
+    }
     if (packet_direction & state->expected_direction)
     {
         switch (state->status)
         {
+        case PRESYN:
+            if (tcph->syn && !tcph->ack)
+            {
+                state->status = SYN;
+                state->expected_direction = flip_direction(packet_direction);
+            }
         case SYN:
             if (tcph->syn && tcph->ack) // syn ack
             {
@@ -120,7 +141,8 @@ int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_s
             return 0;
 
         case FIN1:
-            if (tcph->fin && tcph->ack) {
+            if (tcph->fin && tcph->ack)
+            {
                 state->status = A_FIN2;
                 state->expected_direction = flip_direction(packet_direction);
                 return 0;
@@ -182,6 +204,8 @@ const char *conn_status_str(tcp_status_t status)
 {
     switch (status)
     {
+    case PRESYN:
+        return "pre-SYN";
     case SYN:
         return "SYN sent";
     case SYN_ACK:
@@ -220,16 +244,6 @@ const char *direction_str(direction_t direction)
     }
     return "";
 }
-
-/*
- * Status to be shown to the user
- */
-typedef enum
-{
-    STATE_INITIATING,
-    STATE_ONGOING,
-    STATE_CLOSING
-} public_state_t;
 
 public_state_t state2public(tcp_state_t state)
 {

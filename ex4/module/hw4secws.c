@@ -1,6 +1,7 @@
 #include "filter.h"
 #include "fw.h"
 #include "logger.h"
+#include "proxy.h"
 #include "ruler.h"
 #include "tracker.h"
 
@@ -24,7 +25,7 @@ static struct device *log_dev = NULL;
 static struct device *conn_dev = NULL;
 
 // Allocating struct to hold forward hook_op
-static struct nf_hook_ops nf_forward_op;
+static struct nf_hook_ops nf_pre_op;
 
 /**
  * Set the required fields of nf_hook_ops,
@@ -145,9 +146,9 @@ static struct file_operations conn_ops = {.owner = THIS_MODULE};
 
 ssize_t conns(struct device *dev, struct device_attribute *attr, char *buf)
 {
-    ssize_t csize = ctable2buf(buf);
-    buf += csize;
-    return csize;
+    ssize_t csize = ctable2buf(buf);         // Writes connections to the buffer
+    ssize_t psize = ptable2buf(buf + csize); // Writes proxy connections to the buffer
+    return csize + psize;
 }
 
 static DEVICE_ATTR(conns, S_IRUGO, conns, NULL);
@@ -227,7 +228,7 @@ static int __init hw3secws_init(void)
     }
 
     // Register hook at Net Filter forward point
-    if (set_nf_hook(&nf_forward_op, NF_INET_FORWARD) != 0)
+    if (set_nf_hook(&nf_pre_op, NF_INET_PRE_ROUTING) != 0)
     {
         INFO("Failed to set netfilter FORWARD hook")
         goto failed_hook;
@@ -257,7 +258,7 @@ static void __exit hw3secws_exit(void)
     free_connections();
 
     // Release resources at exiting - unregister the hook
-    nf_unregister_net_hook(&init_net, &nf_forward_op);
+    nf_unregister_net_hook(&init_net, &nf_pre_op);
 
     // Release resources at exiting - unregister char devices
     unregister_conn_dev();

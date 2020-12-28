@@ -9,12 +9,16 @@ In this module we parse a socket buffer (packet).
 #define OUT_NET_DEVICE_NAME "enp0s8"
 #define IN_NET_DEVICE_NAME "enp0s9"
 
+#define FW_IN_SUBNET 167837955  // 10.1.1.3
+#define FW_OUT_SUBNET 167838211 // 10.1.2.3
+
 // Classifies packet's type
 typedef enum
 {
     PACKET_TYPE_ICMP,
     PACKET_TYPE_UDP,
     PACKET_TYPE_TCP,
+    PACKET_TYPE_FW,
     PACKET_TYPE_LOOPBACK,
     PACKET_TYPE_OTHER_PROTOCOL,
     PACKET_TYPE_XMAS,

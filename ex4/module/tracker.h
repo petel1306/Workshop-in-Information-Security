@@ -9,6 +9,7 @@ In this module we track the state of TCP connections.
 
 typedef enum
 {
+    PRESYN,
     SYN,
     SYN_ACK,
     ESTABLISHED,
@@ -40,7 +41,11 @@ typedef struct
     struct list_head list_node;
 } connection_t;
 
-void add_connection(packet_t *packet);
+// Auxiliary functions
+direction_t flip_direction(direction_t direction);
+
+// Connection functions
+void add_connection(const packet_t *packet);
 connection_t *find_connection(packet_t *packet);
 void remove_connection(connection_t *connection);
 void free_connections(void);
@@ -50,9 +55,22 @@ const char *conn_status_str(tcp_status_t status);
 const char *direction_str(direction_t direction);
 
 // Enforcing TCP states' validity
+void pre_state(tcp_state_t *state);
+void init_state(tcp_state_t *state, const packet_t *packet);
 int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state);
 
+/*
+ * Status to be shown to the user
+ */
+typedef enum
+{
+    STATE_INITIATING,
+    STATE_ONGOING,
+    STATE_CLOSING
+} public_state_t;
+
 // Define connections device operations
+public_state_t state2public(tcp_state_t state);
 ssize_t ctable2buf(char *buf);
 
 #endif

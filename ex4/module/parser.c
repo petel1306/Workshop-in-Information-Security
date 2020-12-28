@@ -14,6 +14,12 @@ inline __be32 is_loopback(__be32 address)
     return (address & LOOPBACK_MASK) == LOOPBACK_PREFIX;
 }
 
+inline __u8 involves_fw(__be32 src_ip, __be32 dst_ip)
+{
+    return (src_ip == FW_IN_SUBNET) || (dst_ip == FW_IN_SUBNET) || (src_ip == FW_OUT_SUBNET) ||
+           (dst_ip == FW_OUT_SUBNET);
+}
+
 direction_t get_direction(const struct nf_hook_state *state)
 {
     char *net_in = state->in->name;
@@ -55,6 +61,12 @@ void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_h
     if (is_loopback(packet->src_ip) || is_loopback(packet->dst_ip))
     {
         packet->type = PACKET_TYPE_LOOPBACK;
+    }
+
+    // Check if packet sent from /to fw
+    if (involves_fw(packet->src_ip, packet->dst_ip))
+    {
+        packet->type = PACKET_TYPE_FW;
     }
 
     // Get transport layer protocol field, and declaring headers
