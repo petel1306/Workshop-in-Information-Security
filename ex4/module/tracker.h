@@ -31,11 +31,27 @@ typedef struct
     __be16 port;
 } id_t;
 
+typedef enum
+{
+    PROXY_NONE,
+    PROXY_HTTP,
+    PROXY_FTP_CONTROL,
+    PROXY_FTP_DATA
+} proxy_type_t;
+
+typedef struct
+{
+    proxy_type_t type;
+    __be16 port;
+
+} proxy_t;
+
 typedef struct
 {
     id_t internal_id; // internal id
     id_t external_id; // external id
     tcp_state_t state;
+    proxy_t proxy;
 
     struct list_head list_node;
 } connection_t;
