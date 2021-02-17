@@ -34,31 +34,27 @@ typedef struct
 
 typedef enum
 {
-    PROXY_NONE,
+    NONE_PROXY,
     PROXY_HTTP,
     PROXY_FTP_CONTROL,
-    PROXY_FTP_DATA
-} proxy_type_t;
-
-typedef struct
-{
-    proxy_type_t type;
-    __be16 port;
-
-} proxy_t;
+    FTP_DATA
+} connection_type_t;
 
 typedef struct
 {
     id_t internal_id; // internal id
     id_t external_id; // external id
     tcp_state_t state;
-    proxy_t proxy;
+    connection_type_t type;
+    __be16 proxy_port;
 
     struct list_head list_node;
 } connection_t;
 
 // Auxiliary functions
 direction_t flip_direction(direction_t direction);
+void get_ids(const packet_t *packet, id_t *int_id, id_t *ext_id);
+int is_id_match(const id_t id1, const id_t id2);
 
 // Connection functions
 void add_connection(const packet_t *packet);
@@ -71,7 +67,6 @@ const char *conn_status_str(tcp_status_t status);
 const char *direction_str(direction_t direction);
 
 // Enforcing TCP states' validity
-void pre_state(tcp_state_t *state);
 void init_state(tcp_state_t *state, const packet_t *packet);
 int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state);
 
@@ -80,6 +75,7 @@ int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_s
  */
 typedef enum
 {
+    STATE_EXPECTING,
     STATE_INITIATING,
     STATE_ONGOING,
     STATE_CLOSING

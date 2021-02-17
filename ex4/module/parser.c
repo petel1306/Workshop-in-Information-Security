@@ -16,19 +16,19 @@ inline __be32 is_loopback(__be32 address)
 
 inline __u8 involves_fw(__be32 src_ip, __be32 dst_ip)
 {
-    return (src_ip == FW_IN_SUBNET) || (dst_ip == FW_IN_SUBNET) || (src_ip == FW_OUT_SUBNET) ||
-           (dst_ip == FW_OUT_SUBNET);
+    return (src_ip == FW_INT_SUBNET) || (dst_ip == FW_INT_SUBNET) || (src_ip == FW_EXT_SUBNET) ||
+           (dst_ip == FW_EXT_SUBNET);
 }
 
 direction_t get_direction(const struct nf_hook_state *state)
 {
     char *net_in = state->in->name;
     char *net_out = state->out->name;
-    if (strcmp(net_in, IN_NET_DEVICE_NAME) && strcmp(net_out, OUT_NET_DEVICE_NAME))
+    if (strcmp(net_in, EXT_NET_DEVICE_NAME))
     {
         return DIRECTION_OUT; // Coming from inside to outside = direction out
     }
-    if (strcmp(net_in, OUT_NET_DEVICE_NAME) && strcmp(net_out, IN_NET_DEVICE_NAME))
+    if (strcmp(net_in, INT_NET_DEVICE_NAME))
     {
         return DIRECTION_IN; // Coming from outside to inside = direction in
     }
@@ -81,6 +81,7 @@ void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_h
 
     case PROT_TCP: {
         packet->type = PACKET_TYPE_TCP;
+
         // Get TCP port fields
         packet_tcp_header = tcp_hdr(skb);
         packet->src_port = ntohs(packet_tcp_header->source);
@@ -88,18 +89,12 @@ void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_h
 
         // Get the ACK field
         packet->ack = packet_tcp_header->ack ? ACK_YES : ACK_NO;
-
-        // Check for Christmas tree packet
-        if (packet_tcp_header->fin && packet_tcp_header->urg && packet_tcp_header->psh)
-        {
-            packet->type = PACKET_TYPE_XMAS;
-        }
-
         break;
     }
 
     case PROT_UDP: {
         packet->type = PACKET_TYPE_UDP;
+
         // Get UDP port fields
         packet_udp_header = udp_hdr(skb);
         packet->src_port = ntohs(packet_udp_header->source);
@@ -112,4 +107,16 @@ void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_h
         packet->type = PACKET_TYPE_OTHER_PROTOCOL;
         break;
     }
+}
+
+int is_xmas_packet(const struct sk_buff *skb)
+{
+    struct tcphdr *tcp_header = tcp_hdr(skb);
+    return (tcp_header->fin && tcp_header->urg && tcp_header->psh);
+}
+
+int is_syn_packet(const struct sk_buff *skb)
+{
+    struct tcphdr *tcp_header = tcp_hdr(skb);
+    return (tcp_header->syn && !tcp_header->ack);
 }

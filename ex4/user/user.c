@@ -256,33 +256,6 @@ int main(int argc, char *argv[])
                 printf("%s", conn_str);
             }
 
-            uint32_t proxy_amount;
-            if (fread(&proxy_amount, sizeof(uint32_t), 1, fw_file) != 1)
-            {
-                INFO("An reading error from conns device has occurred")
-                return EXIT_FAILURE;
-            }
-            DINFO("Amount of proxy connections: %d", proxy_amount)
-
-            printf("\nProxy connections:\n");
-            for (uint8_t i = 0; i < proxy_amount; i++)
-            {
-                // Read buffer from log device
-                if (fread(conn_buf, CONN_BUF_SIZE, 1, fw_file) != 1)
-                {
-                    INFO("An reading error from conns device has occurred")
-                }
-
-                // Convert buffer to connection struct
-                buf2conn(&conn, conn_buf);
-
-                // Convert connection struct to a human-readable string
-                conn2str(&conn, conn_str);
-
-                // Print the string to the user
-                printf("%s", conn_str);
-            }
-
             fclose(fw_file);
             return EXIT_SUCCESS;
         }

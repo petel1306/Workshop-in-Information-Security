@@ -5,6 +5,7 @@
 
 typedef enum
 {
+    STATE_EXPECTING,
     STATE_INITIATING,
     STATE_ONGOING,
     STATE_CLOSING

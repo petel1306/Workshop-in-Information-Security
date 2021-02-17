@@ -6,11 +6,11 @@ In this module we parse a socket buffer (packet).
 
 #include "fw.h"
 
-#define OUT_NET_DEVICE_NAME "enp0s8"
-#define IN_NET_DEVICE_NAME "enp0s9"
+#define INT_NET_DEVICE_NAME "enp0s8"
+#define EXT_NET_DEVICE_NAME "enp0s9"
 
-#define FW_IN_SUBNET 167837955  // 10.1.1.3
-#define FW_OUT_SUBNET 167838211 // 10.1.2.3
+#define FW_INT_SUBNET 167837955 // 10.1.1.3
+#define FW_EXT_SUBNET 167838211 // 10.1.2.3
 
 // Classifies packet's type
 typedef enum
@@ -21,7 +21,6 @@ typedef enum
     PACKET_TYPE_FW,
     PACKET_TYPE_LOOPBACK,
     PACKET_TYPE_OTHER_PROTOCOL,
-    PACKET_TYPE_XMAS,
 } packet_type_t;
 
 // Holds packet's fields.
@@ -39,5 +38,7 @@ typedef struct
 } packet_t;
 
 void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_hook_state *state);
+int is_xmas_packet(const struct sk_buff *skb);
+int is_syn_packet(const struct sk_buff *skb);
 
 #endif

@@ -26,20 +26,19 @@ static struct device *conn_dev = NULL;
 
 // Allocating struct to hold forward hook_op
 static struct nf_hook_ops nf_pre_op;
+static struct nf_hook_ops nf_out_op;
 
 /**
  * Set the required fields of nf_hook_ops,
  * and register netfilter hook to the desirable hook point <hook_num>
  */
-static int set_nf_hook(struct nf_hook_ops *my_op, enum nf_inet_hooks hook_num)
+static int set_nf_hook(struct nf_hook_ops *my_op, enum nf_inet_hooks hook_num, nf_hookfn *hook_func)
 {
     int reg_error;
-    // Initialize netfilter hook - this piece of code was taken from:
-    // https://medium.com/bugbountywriteup/linux-kernel-communication-part-1-netfilter-hooks-15c07a5a5c4e
-    my_op->hook = (nf_hookfn *)fw_filter; // hook function
-    my_op->hooknum = hook_num;            // received packets
-    my_op->pf = PF_INET;                  // IPv4
-    my_op->priority = NF_IP_PRI_FIRST;    // max hook priority
+    my_op->hook = hook_func;           // hook function
+    my_op->hooknum = hook_num;         // received packets
+    my_op->pf = PF_INET;               // IPv4
+    my_op->priority = NF_IP_PRI_FIRST; // max hook priority
 
     reg_error = nf_register_net_hook(&init_net, my_op);
     return reg_error;
@@ -146,9 +145,8 @@ static struct file_operations conn_ops = {.owner = THIS_MODULE};
 
 ssize_t conns(struct device *dev, struct device_attribute *attr, char *buf)
 {
-    ssize_t csize = ctable2buf(buf);         // Writes connections to the buffer
-    ssize_t psize = ptable2buf(buf + csize); // Writes proxy connections to the buffer
-    return csize + psize;
+    ssize_t csize = ctable2buf(buf); // Writes connections to the buffer
+    return csize;
 }
 
 static DEVICE_ATTR(conns, S_IRUGO, conns, NULL);
@@ -227,11 +225,17 @@ static int __init hw3secws_init(void)
         goto failed_conn_reg;
     }
 
-    // Register hook at Net Filter forward point
-    if (set_nf_hook(&nf_pre_op, NF_INET_PRE_ROUTING) != 0)
+    // Register hooks at Net Filter
+    if (set_nf_hook(&nf_pre_op, NF_INET_PRE_ROUTING, fw_filter) != 0)
     {
-        INFO("Failed to set netfilter FORWARD hook")
-        goto failed_hook;
+        INFO("Failed to set netfilter PRE_ROUTE hook")
+        goto failed_hook1;
+    }
+
+    if (set_nf_hook(&nf_out_op, NF_INET_LOCAL_OUT, fw_faker) != 0)
+    {
+        INFO("Failed to set netfilter LOCAL_OUT hook")
+        goto failed_hook2;
     }
 
     DINFO("Successful Initialization")
@@ -239,7 +243,9 @@ static int __init hw3secws_init(void)
     return 0;
 
 // Terminating in case of registration error
-failed_hook:
+failed_hook2:
+    nf_unregister_net_hook(&init_net, &nf_pre_op);
+failed_hook1:
     unregister_conn_dev();
 failed_conn_reg:
     unregister_log_dev();
@@ -258,6 +264,7 @@ static void __exit hw3secws_exit(void)
     free_connections();
 
     // Release resources at exiting - unregister the hook
+    nf_unregister_net_hook(&init_net, &nf_out_op);
     nf_unregister_net_hook(&init_net, &nf_pre_op);
 
     // Release resources at exiting - unregister char devices
