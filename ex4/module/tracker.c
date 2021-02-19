@@ -49,26 +49,40 @@ int is_id_match(const id_t id1, const id_t id2)
 }
 
 /**
- * Add a new connection
+ * Add a blank connection
  */
-void add_connection(const packet_t *packet)
+connection_t *add_blank_connection(void)
 {
+
     // Allocate connection
     connection_t *conn = (connection_t *)kmalloc(sizeof(connection_t), GFP_KERNEL);
-
-    // Get ids from the packet
-    get_ids(packet, &conn->internal_id, &conn->external_id);
-
-    // Initial connection state
-    init_state(&conn->state, packet);
-
-    // Non-proxy connection
-    conn->type = NONE_PROXY;
-    conn->proxy_port = 0;
 
     // Add connection to the table
     list_add_tail(&conn->list_node, &ctable);
     connections_amount++;
+
+    return conn;
+}
+
+/**
+ * Add a new connection
+ */
+connection_t *add_connection(const packet_t *packet)
+{
+    connection_t *conn = add_blank_connection();
+
+    // Get ids from the packet
+    get_ids(packet, &conn->internal_id, &conn->external_id);
+
+    // Initialize connection state
+    conn->state.status = PRESYN;
+    conn->state.expected_direction = DIRECTION_ANY;
+
+    // Non-proxy connection
+    conn->type = NONE_PROXY;
+    conn->proxy_port = 1;
+
+    return conn;
 }
 
 connection_t *find_connection(packet_t *packet)
@@ -106,15 +120,6 @@ void free_connections(void)
     }
 
     connections_amount = 0;
-}
-
-/**
- * Initialize the state of the connection
- */
-void init_state(tcp_state_t *state, const packet_t *packet)
-{
-    state->status = SYN;
-    state->expected_direction = flip_direction(packet->direction);
 }
 
 /**

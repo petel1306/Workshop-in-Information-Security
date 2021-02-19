@@ -144,7 +144,8 @@ void get_log_row(const packet_t *packet, log_row_t *log_row)
     log_row->dst_port = packet->dst_port;
 
     // Count field may be irrelevant (in case the log entry already exists)
-    log_row->count = 1;
+    // *** If the packet is starting TCP connection then it dosen't counted
+    log_row->count = (packet->type == PACKET_TYPE_TCP) ? 0 : 1;
 
     // action, reason fields will be filled according to the match
 }
@@ -189,47 +190,19 @@ unsigned int stateless_filter(packet_t *packet, log_row_t *log_row)
     return NF_DROP;
 }
 
-unsigned int statefull_inspection(packet_t *packet, log_row_t *log_row, connection_t *conn, struct sk_buff *skb)
-{
-    // Stateful inspection logic for non-proxy connections
-    // Lets enforce the states
-    const struct tcphdr *tcph = tcp_hdr(skb);
-    int ret;
-
-    DINFO("Before enforcing: %s, Expect %s", conn_status_str(conn->state.status),
-          direction_str(conn->state.expected_direction));
-
-    DINFO("tcp filter: direction=%s, src_ip=%d.%d.%d.%d, src_port=%d, dst_ip=%d.%d.%d.%d, dst_port=%d, syn=%d, "
-          "ack=%d, fin=%d",
-          direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port, IP_PARTS(packet.dst_ip),
-          packet.dst_port, tcph->syn, tcph->ack, tcph->fin)
-
-    ret = enforce_state(tcph, packet->direction, &conn->state);
-
-    DINFO("Enforce answer: %d", ret)
-
-    switch (ret)
-    {
-    case 2:
-        remove_connection(conn);
-    case 0:
-        log_action(log_row, NF_ACCEPT, REASON_TCP_STREAM_ENFORCE);
-        return NF_ACCEPT;
-    case 1:
-        log_action(log_row, NF_DROP, REASON_TCP_STREAM_ENFORCE);
-        return NF_DROP;
-    }
-}
-
 /**
- * We perform here the packet filtering a pre-routing point
+ * We perform here the packet inspecting (including filtering)
  */
-unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
+unsigned int fw_inspect(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
     // Allocate firewall structs
     packet_t packet;
     connection_t *conn;
     log_row_t log_row;
+
+    // Alocate auxiliary variables
+    const struct tcphdr *tcph = tcp_hdr(skb);
+    int ret;
 
     // Get the required packet fields. The fields should not be changed throughout the filtering.
     parse_packet(&packet, skb, state);
@@ -240,9 +213,9 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
     // Get the log_row fields from the packet
     get_log_row(&packet, &log_row);
 
-    INFO("Filtering:\ntype = %d, direction = %s, src_ip = %d.%d.%d.%d, src_port = % d, dst_ip = %d.%d.%d.%d, "
-         "dst_port = % d, protocol = %d",
-         packet.type, direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port,
+    INFO("Filtering:\nhooknum = %d, type = %d, direction = %s, src_ip = %d.%d.%d.%d, src_port = % d, dst_ip = "
+         "%d.%d.%d.%d, dst_port = % d, protocol = %d",
+         packet.hooknum, packet.type, direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port,
          IP_PARTS(packet.dst_ip), packet.dst_port, packet.protocol)
 
     // Special actions: (depending on the packet's type)
@@ -261,13 +234,26 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
         break; // This a regular packet-> Let's look for a match with a rule!
     }
 
+    // Routing intended TCP packets for proxy connections
+    if (packet.type == PACKET_TYPE_TCP && proxy_route(&packet))
+    {
+        log_action(&log_row, NF_ACCEPT, REASON_TCP_PROXY);
+        return NF_ACCEPT;
+    }
+
+    // Local-out hook is non-relevant anymore - accept by default
+    if (packet.hooknum == NF_INET_LOCAL_OUT)
+    {
+        return NF_ACCEPT;
+    }
+    // Now we are dealing with pre-route hook !
+
     // If it's non TCP packet, do statless filtering
     if (packet.type != PACKET_TYPE_TCP)
     {
         return stateless_filter(&packet, &log_row);
     }
-
-    // It's a TCP packet !
+    // Now we are sure it's a TCP packet !
 
     // Drop any Christmas tree packet
     if (is_xmas_packet(skb))
@@ -277,116 +263,71 @@ unsigned int fw_filter(void *priv, struct sk_buff *skb, const struct nf_hook_sta
         return NF_DROP;
     }
 
-    // Check if it's a syn packet
-    if (is_syn_packet(skb))
+    // Check if the connection exists
+    if (conn == NULL)
     {
-        DINFO("SYN packet")
-
-        // If there is no existing connection, perform statless inspection
-        if (conn == NULL)
+        // Check if it's a desired syn packet
+        if (is_syn_packet(skb))
         {
+            // Statless filtering
             __u8 verdict = stateless_filter(&packet, &log_row);
 
-            if (verdict == NF_ACCEPT)
+            if (verdict == NF_DROP)
             {
-                // Add the connection
-                DINFO("Creates a connection")
-                add_connection(&packet);
-
-                // If it's a connection from internal client to external server, then setup proxy
-                if (packet.direction == DIRECTION_OUT && (packet.dst_port == HTTP_PORT || packet.dst_port == FTP_PORT))
-                {
-                    DINFO("Do proxy stuff")
-                    // TO BE DONE
-                }
+                return NF_DROP;
             }
 
-            return verdict;
+            // Add the connection
+            DINFO("Creates a connection")
+            conn = add_connection(&packet);
+
+            // If proxy then setup proxy connection
+            if (proxy_setup(&packet, conn))
+            {
+                return NF_ACCEPT;
+            }
         }
 
-        // Check if it's an active FTP data session
-        if (packet.direction == DIRECTION_IN && conn != NULL && conn->type == FTP_DATA)
+        else
         {
-            DINFO("Verdict: active FTP data session")
-            init_state(&conn->state, &packet);
-            log_action(&log_row, NF_ACCEPT, REASON_FTP_DATA_SESSION);
-            return NF_ACCEPT;
+            DINFO("Verdict: connection dosen't exist")
+            log_action(&log_row, NF_DROP, REASON_TCP_STREAM_ENFORCE);
+            return NF_DROP;
         }
+    }
+    // Now we are sure the connection exists -
+    // Let's perform statefull inspection
 
-        DINFO("Verdict: syn packet was sent over a live connection")
+    DINFO("Before enforcing: %s, Expect %s", conn_status_str(conn->state.status),
+          direction_str(conn->state.expected_direction));
+
+    DINFO("tcp filter: direction=%s, src_ip=%d.%d.%d.%d, src_port=%d, dst_ip=%d.%d.%d.%d, dst_port=%d, syn=%d, "
+          "ack=%d, fin=%d",
+          direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port, IP_PARTS(packet.dst_ip),
+          packet.dst_port, tcph->syn, tcph->ack, tcph->fin)
+
+    ret = enforce_state(tcph, packet.direction, &conn->state);
+
+    DINFO("Enforce answer: %d", ret)
+
+    switch (ret)
+    {
+    case 2:
+        remove_connection(conn);
+    case 0:
+        if (escape_ftp_data(&packet, conn))
+        {
+            log_action(&log_row, NF_ACCEPT, REASON_FTP_DATA_SESSION);
+        }
+        else
+        {
+            log_action(&log_row, NF_ACCEPT, REASON_TCP_STREAM_ENFORCE);
+        }
+        return NF_ACCEPT;
+    case 1:
         log_action(&log_row, NF_DROP, REASON_TCP_STREAM_ENFORCE);
         return NF_DROP;
     }
 
-    if (conn != NULL)
-    {
-        // Check if client to proxy packet
-        if (is_proxy_connection(conn))
-        {
-            log_action(&log_row, NF_ACCEPT, REASON_TCP_PROXY);
-            // c2p_proxy();
-            return NF_ACCEPT;
-        }
-        else
-        {
-            // Regular TCP connection
-            statefull_inspection(&packet, &log_row, conn, skb);
-        }
-    }
-
-    // Check if server to proxy packet
-    if (packet.direction == DIRECTION_IN)
-    {
-        connection_t *proxy = find_proxy_by_port(packet.dst_port);
-        if (proxy != NULL)
-        {
-            // Fix the packet
-            packet.dst_port = proxy->internal_id.port;
-
-            // Check if the result is consistent
-            conn = find_connection(&packet);
-            if (proxy == conn)
-            {
-                log_action(&log_row, NF_ACCEPT, REASON_TCP_PROXY);
-                // s2p_proxy();
-                return NF_ACCEPT;
-            }
-        }
-    }
-
-    DINFO("Verdict: can't find the connection")
-    log_action(&log_row, NF_DROP, REASON_TCP_STREAM_ENFORCE);
-    return NF_DROP;
-}
-
-/**
- * We perform here the packet filtering at local-out routing point
- */
-unsigned int fw_faker(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
-{
-    // Allocate firewall structs
-    packet_t packet;
-    connection_t *conn;
-
-    // Get the required packet fields. The fields should not be changed throughout the filtering.
-    parse_packet(&packet, skb, state);
-
-    // Get connection entry
-    conn = find_connection(&packet);
-
-    // Special actions: (depending on the packet's type)
-    switch (packet.type)
-    {
-    case PACKET_TYPE_LOOPBACK:
-        return NF_ACCEPT; // Accept any loopback (127.0.0.1/8) packet without logging it
-
-    case PACKET_TYPE_FW:
-        return NF_ACCEPT; // Accept any packet designated to the firewall
-
-    case PACKET_TYPE_OTHER_PROTOCOL:
-        return NF_ACCEPT; // Accept any non TCP, UDP and ICMP protocol without logging it
-
-    default:
-        break; // This a regular packet-> Let's look for a match with a rule!
-    }
+    return NF_DROP; // Done !
 }

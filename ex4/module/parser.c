@@ -16,8 +16,8 @@ inline __be32 is_loopback(__be32 address)
 
 inline __u8 involves_fw(__be32 src_ip, __be32 dst_ip)
 {
-    return (src_ip == FW_INT_SUBNET) || (dst_ip == FW_INT_SUBNET) || (src_ip == FW_EXT_SUBNET) ||
-           (dst_ip == FW_EXT_SUBNET);
+    // return (src_ip == FW_INT_ADRR) || (dst_ip == FW_INT_ADRR) || (src_ip == FW_EXT_ADRR) || (dst_ip == FW_EXT_ADRR);
+    return (dst_ip == FW_INT_ADRR) || (dst_ip == FW_EXT_ADRR);
 }
 
 direction_t get_direction(const struct nf_hook_state *state)
@@ -39,7 +39,7 @@ direction_t get_direction(const struct nf_hook_state *state)
  * Parses socket buffer (packet), and fills the required fields in packet_t structure.
  * In addition, it transfers the data (from netwwork order) to host order
  */
-void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_hook_state *state)
+void parse_packet(packet_t *packet, struct sk_buff *skb, const struct nf_hook_state *state)
 {
     // Alocating headers for network & transport layers
     struct iphdr *packet_ip_header;
@@ -48,6 +48,12 @@ void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_h
 
     // Initialize packet
     *packet = empty_packet;
+
+    // Set the skb
+    packet->skb = skb;
+
+    // Set the hook num
+    packet->hooknum = state->hook;
 
     // Get direction field
     packet->direction = get_direction(state);

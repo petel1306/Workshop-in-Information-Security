@@ -8,8 +8,11 @@
 #include <linux/module.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/slab.h>
+#include <linux/string.h>
 #include <linux/tcp.h>
+#include <linux/time.h>
 #include <linux/udp.h>
+#include <net/tcp.h>
 
 unsigned int get_info_counter(void);
 

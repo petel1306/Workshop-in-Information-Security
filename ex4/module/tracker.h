@@ -57,7 +57,8 @@ void get_ids(const packet_t *packet, id_t *int_id, id_t *ext_id);
 int is_id_match(const id_t id1, const id_t id2);
 
 // Connection functions
-void add_connection(const packet_t *packet);
+connection_t *add_blank_connection(void);
+connection_t *add_connection(const packet_t *packet);
 connection_t *find_connection(packet_t *packet);
 void remove_connection(connection_t *connection);
 void free_connections(void);
@@ -67,7 +68,6 @@ const char *conn_status_str(tcp_status_t status);
 const char *direction_str(direction_t direction);
 
 // Enforcing TCP states' validity
-void init_state(tcp_state_t *state, const packet_t *packet);
 int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state);
 
 /*

@@ -28,7 +28,7 @@ static log_entry_t *allocate_entry(void)
 {
     if (pool_amount == 0)
     {
-        log_pool = (log_entry_t *)kcalloc(MAX_POOL, sizeof(log_entry_t), GFP_KERNEL);
+        log_pool = (log_entry_t *)kmalloc(MAX_POOL * sizeof(log_entry_t), GFP_KERNEL);
         pool_amount = MAX_POOL;
     }
     pool_amount--;
