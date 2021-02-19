@@ -218,7 +218,9 @@ int escape_ftp_data(packet_t *packet, connection_t *conn)
     if (conn->type == FTP_DATA && conn->state.status == SYN) // Wild card port is a sign for FTP data session
     {
         conn->external_id.port = packet->src_port;
+        return 1;
     }
+    return 0;
 }
 
 // ========================== Proxy device operations ===========================
@@ -243,13 +245,13 @@ ssize_t set_proxy_port(struct device *dev, struct device_attribute *attr, const 
     BUF2VAR(client_id.port);
     BUF2VAR(proxy_port);
 
-    DINFO("set_proxy_port: client_ip=%d.%d.%d.%d, client_port=%d, proxy_port=%d", IP_ARGS(client_id.ip), client_id.port,
-          proxy_port)
+    // DINFO("set_proxy_port: client_ip=%d.%d.%d.%d, client_port=%d, proxy_port=%d", IP_PARTS(client_id.ip),
+    //       client_id.port, proxy_port)
 
     proxy = find_proxy_by_client(client_id);
     if (proxy == NULL)
     {
-        DINFO("set_proxy_port: can't find proxy")
+        // DINFO("set_proxy_port: can't find proxy")
     }
 
     proxy->proxy_port = proxy_port;
@@ -263,8 +265,9 @@ ssize_t get_proxy_server(struct device *dev, struct device_attribute *attr, char
 {
     id_t client_id = current_proxy->internal_id;
     id_t server_id = current_proxy->external_id;
-    DINFO("get_proxy_server: client_ip=%d.%d.%d.%d, client_port=%d, server_ip=%d.%d.%d.%d, server_port=%d",
-          IP_ARGS(client_id.ip), client_id.port, IP_ARGS(server_id.ip), server_id.port);
+    // DINFO("get_proxy_server: client_ip=%d.%d.%d.%d, client_port=%d, server_ip=%d.%d.%d.%d, server_port=%d",
+    //       IP_PARTS(client_id.ip), client_id.port, IP_PARTS(server_id.ip), server_id.port);
+    client_id.port = 0; // For the program to compile
 
     VAR2BUF(server_id.ip);
     VAR2BUF(server_id.port);
@@ -287,8 +290,8 @@ ssize_t add_ftp_data(struct device *dev, struct device_attribute *attr, const ch
     BUF2VAR(server_ip);
     BUF2VAR(ftp_data_port);
 
-    DINFO("add_ftp_data: client_ip=%d.%d.%d.%d, server_ip=%d.%d.%d.%d, ftp_data_port=%d", client_ip, server_ip,
-          ftp_data_port);
+    // DINFO("add_ftp_data: client_ip=%d.%d.%d.%d, server_ip=%d.%d.%d.%d, ftp_data_port=%d", client_ip, server_ip,
+    //       ftp_data_port);
 
     // Add an FTP data connection
     conn = add_blank_connection();

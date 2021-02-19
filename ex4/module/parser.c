@@ -23,7 +23,7 @@ inline __u8 involves_fw(__be32 src_ip, __be32 dst_ip)
 direction_t get_direction(const struct nf_hook_state *state)
 {
     char *net_in = state->in->name;
-    char *net_out = state->out->name;
+    // char *net_out = state->out->name;
     if (strcmp(net_in, EXT_NET_DEVICE_NAME))
     {
         return DIRECTION_OUT; // Coming from inside to outside = direction out

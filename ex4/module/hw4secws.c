@@ -259,6 +259,7 @@ static void unregister_proxy_dev(void)
  */
 static int __init hw4secws_init(void)
 {
+    DINFO("Try 1");
     // Create sysfs class
     sysfs_class = class_create(THIS_MODULE, CLASS_NAME);
     if (IS_ERR(sysfs_class))
@@ -267,6 +268,7 @@ static int __init hw4secws_init(void)
         goto failed_class;
     }
 
+    DINFO("Try 2");
     // Register rules device
     if (register_rules_dev() != 0)
     {
@@ -274,6 +276,7 @@ static int __init hw4secws_init(void)
         goto failed_log_reg;
     }
 
+    DINFO("Try 3");
     // Register log device
     if (register_log_dev() != 0)
     {
@@ -281,6 +284,7 @@ static int __init hw4secws_init(void)
         goto failed_rule_reg;
     }
 
+    DINFO("Try 4");
     // Register connections device
     if (register_conn_dev() != 0)
     {
@@ -288,6 +292,7 @@ static int __init hw4secws_init(void)
         goto failed_conn_reg;
     }
 
+    DINFO("Try 5");
     // Register proxy device
     if (register_proxy_dev() != 0)
     {
@@ -295,6 +300,7 @@ static int __init hw4secws_init(void)
         goto failed_proxy_reg;
     }
 
+    DINFO("Try 6");
     // Register hook at Net Filter forward point
     if (set_nf_hook(&nf_preroute_op, NF_INET_PRE_ROUTING) != 0)
     {
@@ -302,6 +308,7 @@ static int __init hw4secws_init(void)
         goto failed_hook1;
     }
 
+    DINFO("Try 7");
     // Register hook at Net Filter forward point
     if (set_nf_hook(&nf_localout_op, NF_INET_LOCAL_OUT) != 0)
     {

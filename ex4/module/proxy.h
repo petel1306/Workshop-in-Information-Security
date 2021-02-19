@@ -1,3 +1,7 @@
+/*
+In this module we manage the proxy connections.
+*/
+
 #include "fw.h"
 #include "tracker.h"
 
