@@ -11,6 +11,8 @@ In this module the packet filtering is preformed.
 
 #include <linux/time.h>
 
+static int debug_time = 0;
+
 // Boolean evaluation: returns 1 (MATCH_TRUE) <--> X is non zero
 #define bool_val(X) ((X) ? 1 : 0)
 
@@ -201,22 +203,21 @@ unsigned int fw_inspect(void *priv, struct sk_buff *skb, const struct nf_hook_st
     log_row_t log_row;
 
     // Alocate auxiliary variables
-    const struct tcphdr *tcph = tcp_hdr(skb);
+    const struct tcphdr *tcph;
     int ret;
+    
+    if (debug_time) {
+        return NF_ACCEPT;
+    }
 
     // Get the required packet fields. The fields should not be changed throughout the filtering.
     parse_packet(&packet, skb, state);
-
+    
     // Get connection entry
     conn = find_connection(&packet);
 
     // Get the log_row fields from the packet
     get_log_row(&packet, &log_row);
-
-    INFO("Filtering:\nhooknum = %d, type = %d, direction = %s, src_ip = %d.%d.%d.%d, src_port = % d, dst_ip = "
-         "%d.%d.%d.%d, dst_port = % d, protocol = %d",
-         packet.hooknum, packet.type, direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port,
-         IP_PARTS(packet.dst_ip), packet.dst_port, packet.protocol)
 
     // Special actions: (depending on the packet's type)
     switch (packet.type)
@@ -233,6 +234,16 @@ unsigned int fw_inspect(void *priv, struct sk_buff *skb, const struct nf_hook_st
     default:
         break; // This a regular packet-> Let's look for a match with a rule!
     }
+    
+    // Ignoring packets from unintended interfaces
+    if (packet.direction == DIRECTION_NONE) {
+        return NF_ACCEPT;
+    }
+    
+    DINFO("Filtering:\nhooknum = %d, type = %d, direction = %s, src_ip = %d.%d.%d.%d, src_port = % d, dst_ip = "
+         "%d.%d.%d.%d, dst_port = % d, protocol = %d",
+         packet.hooknum, packet.type, direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port,
+         IP_PARTS(packet.dst_ip), packet.dst_port, packet.protocol)
 
     // Routing intended TCP packets for proxy connections
     if (packet.type == PACKET_TYPE_TCP && proxy_route(&packet))
@@ -297,6 +308,8 @@ unsigned int fw_inspect(void *priv, struct sk_buff *skb, const struct nf_hook_st
     }
     // Now we are sure the connection exists -
     // Let's perform statefull inspection
+    
+    tcph = tcp_hdr(skb);
 
     DINFO("Before enforcing: %s, Expect %s", conn_status_str(conn->state.status),
           direction_str(conn->state.expected_direction));

@@ -4,7 +4,7 @@ In this module the packet logging is done.
 #include "logger.h"
 #include "fw.h"
 
-#define MAX_POOL 50
+#define MAX_POOL 20
 
 typedef struct
 {

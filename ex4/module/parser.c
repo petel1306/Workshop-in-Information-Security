@@ -6,8 +6,8 @@ In this module the socket buffer (packet) is being parsed.
 // Allocating struct to hold the inspected packet
 static const packet_t empty_packet;
 
-const __be32 LOOPBACK_PREFIX = 0x7F000000;
-const __be32 LOOPBACK_MASK = 0xFF000000;
+const __be32 LOOPBACK_PREFIX = 0x7F000000; // 127.X.X.X
+const __be32 LOOPBACK_MASK = 0xFF000000; // 127.0.0.0
 
 inline __be32 is_loopback(__be32 address)
 {
@@ -23,12 +23,13 @@ inline __u8 involves_fw(__be32 src_ip, __be32 dst_ip)
 direction_t get_direction(const struct nf_hook_state *state)
 {
     char *net_in = state->in->name;
-    // char *net_out = state->out->name;
-    if (strcmp(net_in, EXT_NET_DEVICE_NAME))
+    char *net_out = state->out->name;
+    
+    if ((net_out != NULL && strcmp(net_out, EXT_NET_DEVICE_NAME) == 0) || (net_in != NULL && strcmp(net_in, INT_NET_DEVICE_NAME) == 0))
     {
         return DIRECTION_OUT; // Coming from inside to outside = direction out
     }
-    if (strcmp(net_in, INT_NET_DEVICE_NAME))
+    if ((net_out != NULL && strcmp(net_out, INT_NET_DEVICE_NAME) == 0) || (net_in != NULL && strcmp(net_in, EXT_NET_DEVICE_NAME) == 0))
     {
         return DIRECTION_IN; // Coming from outside to inside = direction in
     }
@@ -57,27 +58,29 @@ void parse_packet(packet_t *packet, struct sk_buff *skb, const struct nf_hook_st
 
     // Get direction field
     packet->direction = get_direction(state);
-
+    
     // Get IP fields
     packet_ip_header = ip_hdr(skb);
     packet->src_ip = ntohl(packet_ip_header->saddr);
     packet->dst_ip = ntohl(packet_ip_header->daddr);
-
+    
     // Check for loopback packet
     if (is_loopback(packet->src_ip) || is_loopback(packet->dst_ip))
     {
         packet->type = PACKET_TYPE_LOOPBACK;
+        return;
     }
 
     // Check if packet sent from /to fw
     if (involves_fw(packet->src_ip, packet->dst_ip))
     {
         packet->type = PACKET_TYPE_FW;
+        return;
     }
 
     // Get transport layer protocol field, and declaring headers
     packet->protocol = packet_ip_header->protocol;
-
+    
     switch (packet->protocol)
     {
     case PROT_ICMP:
