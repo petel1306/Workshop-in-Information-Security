@@ -224,9 +224,7 @@ int escape_ftp_data(packet_t *packet, connection_t *conn)
 }
 
 // ========================== Proxy device operations ===========================
-static connection_t *current_proxy = NULL;
 const __u16 PROXY_SET_SIZE = sizeof(__be32) + 2 * sizeof(__be16);
-const __u16 PROXY_GET_SIZE = sizeof(__be32) + sizeof(__be16);
 const __u16 FTP_ADD_SIZE = 2 * sizeof(__be32) + sizeof(__be16);
 
 ssize_t set_proxy_port(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
@@ -257,27 +255,13 @@ ssize_t set_proxy_port(struct device *dev, struct device_attribute *attr, const 
     proxy->proxy_port = proxy_port;
     proxy_ports[proxy_port] = proxy;
 
-    current_proxy = proxy;
     return PROXY_SET_SIZE;
-}
-
-ssize_t get_proxy_server(struct device *dev, struct device_attribute *attr, char *buf)
-{
-    id_t client_id = current_proxy->internal_id;
-    id_t server_id = current_proxy->external_id;
-    DINFO("get_proxy_server: client_ip=%d.%d.%d.%d, client_port=%d, server_ip=%d.%d.%d.%d, server_port=%d",
-          IP_PARTS(client_id.ip), client_id.port, IP_PARTS(server_id.ip), server_id.port);
-    client_id.port = 0; // For the program to compile
-
-    VAR2BUF(server_id.ip);
-    VAR2BUF(server_id.port);
-    return PROXY_GET_SIZE;
 }
 
 ssize_t add_ftp_data(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
-    __be32 client_ip, server_ip;
-    __be16 ftp_data_port;
+    __be32 ftp_ip, server_ip;
+    __be16 ftp_port;
     connection_t *conn;
 
     if (count < FTP_ADD_SIZE)
@@ -286,9 +270,9 @@ ssize_t add_ftp_data(struct device *dev, struct device_attribute *attr, const ch
     }
 
     // Should get (client_ip, server_ip, ftp_data_port)
-    BUF2VAR(client_ip);
+    BUF2VAR(ftp_ip);
     BUF2VAR(server_ip);
-    BUF2VAR(ftp_data_port);
+    BUF2VAR(ftp_port);
 
     DINFO("Add_ftp_data: client_ip=%d.%d.%d.%d, server_ip=%d.%d.%d.%d, ftp_data_port=%d", IP_PARTS(client_ip),
           IP_PARTS(server_ip), ftp_data_port);

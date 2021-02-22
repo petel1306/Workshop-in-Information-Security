@@ -203,9 +203,9 @@ static void unregister_conn_dev(void)
 
 static struct file_operations proxy_ops = {.owner = THIS_MODULE};
 
-static DEVICE_ATTR(proxy, S_IWUSR | S_IRUGO, get_proxy_server, set_proxy_port);
+static DEVICE_ATTR(set_port, S_IWUSR, NULL, set_proxy_port);
 
-static DEVICE_ATTR(ftp, S_IWUSR, NULL, add_ftp_data);
+static DEVICE_ATTR(add_ftp, S_IWUSR, NULL, add_ftp_data);
 
 static int register_proxy_dev(void)
 {
@@ -224,18 +224,18 @@ static int register_proxy_dev(void)
     }
 
     // create sysfs file attributes
-    if (device_create_file(proxy_dev, (const struct device_attribute *)&dev_attr_proxy.attr))
+    if (device_create_file(proxy_dev, (const struct device_attribute *)&dev_attr_set_port.attr))
     {
         goto failed_proxy_file;
     }
-    if (device_create_file(proxy_dev, (const struct device_attribute *)&dev_attr_ftp.attr))
+    if (device_create_file(proxy_dev, (const struct device_attribute *)&dev_attr_add_ftp.attr))
     {
         goto failed_ftp_file;
     }
     return 0;
 
 failed_ftp_file:
-    device_remove_file(proxy_dev, (const struct device_attribute *)&dev_attr_proxy.attr);
+    device_remove_file(proxy_dev, (const struct device_attribute *)&dev_attr_set_port.attr);
 failed_proxy_file:
     device_destroy(sysfs_class, MKDEV(proxy_major, 0));
 failed_proxy_device:
@@ -246,8 +246,8 @@ failed_proxy_major:
 
 static void unregister_proxy_dev(void)
 {
-    device_remove_file(proxy_dev, (const struct device_attribute *)&dev_attr_ftp.attr);
-    device_remove_file(proxy_dev, (const struct device_attribute *)&dev_attr_proxy.attr);
+    device_remove_file(proxy_dev, (const struct device_attribute *)&dev_attr_add_ftp.attr);
+    device_remove_file(proxy_dev, (const struct device_attribute *)&dev_attr_set_port.attr);
     device_destroy(sysfs_class, MKDEV(proxy_major, 0));
     unregister_chrdev(proxy_major, MAJOR_NAME_PROXY);
 }
