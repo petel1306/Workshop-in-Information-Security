@@ -9,15 +9,6 @@ extern __u32 connections_amount;
 connection_t *proxy_ports[1 << 16]; // 2^16 possible ports
 
 /**
- * Tells if proxy connection
- */
-int is_proxy_connection(connection_t *conn)
-{
-    connection_type_t type = conn->type;
-    return (type == PROXY_HTTP) || (type == PROXY_FTP_CONTROL);
-}
-
-/**
  * Finds proxy by client id (ip + port)
  */
 connection_t *find_proxy_by_client(id_t client_id)
@@ -42,22 +33,26 @@ connection_t *find_proxy_by_port(__be16 proxy_port)
     return proxy_ports[proxy_port];
 }
 
+/**
+ * Fix packet checksum
+ */
 static void fix_checksum(struct sk_buff *skb)
 {
     struct iphdr *ip_header = ip_hdr(skb);
     struct tcphdr *tcp_header = tcp_hdr(skb);
 
-    /* Fix TCP header checksum */
+    // Fix TCP header checksum
     int tcplen = (ntohs(ip_header->tot_len) - ((ip_header->ihl) << 2));
     tcp_header->check = 0;
     tcp_header->check =
         tcp_v4_check(tcplen, ip_header->saddr, ip_header->daddr, csum_partial((char *)tcp_header, tcplen, 0));
 
-    /* Fix IP header checksum */
+    // Fix IP header checksum
     ip_header->check = 0;
     ip_header->check = ip_fast_csum((u8 *)ip_header, ip_header->ihl);
     skb->ip_summed = CHECKSUM_NONE;
 
+    // Fix packet linearization
     // skb->csum_valid = 0;
     // if (skb_linearize(skb) < 0)
     // {
@@ -102,6 +97,8 @@ int proxy_route(packet_t *packet)
     struct sk_buff *skb = packet->skb;
     struct iphdr *iph = ip_hdr(skb);
     struct tcphdr *tcph = tcp_hdr(skb);
+    
+    int is_proxy = 0;
 
     if (packet->hooknum == NF_INET_PRE_ROUTING)
     {
@@ -129,7 +126,7 @@ int proxy_route(packet_t *packet)
                 // Fix the checksum
                 fix_checksum(packet->skb);
 
-                return 1;
+                is_proxy = 1;
             }
         }
         else
@@ -153,7 +150,7 @@ int proxy_route(packet_t *packet)
                     // Fix the checksum
                     fix_checksum(packet->skb);
 
-                    return 1;
+                    is_proxy = 1;
                 }
             }
         }
@@ -176,12 +173,12 @@ int proxy_route(packet_t *packet)
                     DINFO("p2s packet")
 
                     // Fake source
-                    iph->saddr = proxy->internal_id.ip;
+                    iph->saddr = htonl(proxy->internal_id.ip);
 
                     // Fix the checksum
                     fix_checksum(packet->skb);
 
-                    return 1;
+                    is_proxy = 1;
                 }
             }
         }
@@ -200,17 +197,23 @@ int proxy_route(packet_t *packet)
                 DINFO("p2c packet")
 
                 // Fake source
-                iph->saddr = ext_id.ip;
-                tcph->source = ext_id.port;
+                iph->saddr = htonl(ext_id.ip);
+                tcph->source = htons(ext_id.port);
 
                 // Fix the checksum
                 fix_checksum(packet->skb);
 
-                return 1;
+                is_proxy = 1;
             }
         }
     }
-    return 0;
+    
+    if (is_proxy) {
+        parse_packet(packet, packet->skb, packet->state);
+        print_packet(packet);
+    }
+    
+    return is_proxy;
 }
 
 int escape_ftp_data(packet_t *packet, connection_t *conn)
@@ -274,15 +277,15 @@ ssize_t add_ftp_data(struct device *dev, struct device_attribute *attr, const ch
     BUF2VAR(server_ip);
     BUF2VAR(ftp_port);
 
-    DINFO("Add_ftp_data: client_ip=%d.%d.%d.%d, server_ip=%d.%d.%d.%d, ftp_data_port=%d", IP_PARTS(client_ip),
-          IP_PARTS(server_ip), ftp_data_port);
+    DINFO("Add_ftp_data: client_ip=%d.%d.%d.%d, server_ip=%d.%d.%d.%d, ftp_data_port=%d", IP_PARTS(ftp_ip),
+          IP_PARTS(server_ip), ftp_port);
 
     // Add an FTP data connection
     conn = add_blank_connection();
 
     // Set identifiers
-    conn->internal_id.ip = client_ip;
-    conn->internal_id.port = ftp_data_port;
+    conn->internal_id.ip = ftp_ip;
+    conn->internal_id.port = ftp_port;
     conn->external_id.ip = server_ip;
     conn->external_id.port = 0; // Wildcard - match to any port
 

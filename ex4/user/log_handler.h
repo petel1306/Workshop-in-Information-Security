@@ -9,7 +9,9 @@ typedef enum
     REASON_FW_INACTIVE = -1,
     REASON_NO_MATCHING_RULE = -2,
     REASON_XMAS_PACKET = -4,
-    REASON_TCP_STREAM_ENFORCE = -8
+    REASON_TCP_STREAM_ENFORCE = -8,
+    REASON_FTP_DATA_SESSION = -16,
+    REASON_TCP_PROXY = -32
 } reason_t;
 
 // logging

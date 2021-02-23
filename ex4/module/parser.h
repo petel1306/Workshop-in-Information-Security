@@ -37,10 +37,14 @@ typedef struct
     packet_type_t type;
     unsigned int hooknum;
     struct sk_buff *skb;
+    const struct nf_hook_state *state;
 } packet_t;
 
 void parse_packet(packet_t *packet, struct sk_buff *skb, const struct nf_hook_state *state);
 int is_xmas_packet(const struct sk_buff *skb);
 int is_syn_packet(const struct sk_buff *skb);
+
+char *direction_str(direction_t direction);
+void print_packet(packet_t *packet);
 
 #endif

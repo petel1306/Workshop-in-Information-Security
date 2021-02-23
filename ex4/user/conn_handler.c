@@ -23,6 +23,7 @@ void state2str(char *str, const tcp_state_t state)
         STATE_CASE(INITIATING)
         STATE_CASE(ONGOING)
         STATE_CASE(CLOSING)
+        STATE_CASE(PROXY)
     default:
         strcpy(str, "");
     }

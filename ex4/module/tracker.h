@@ -65,7 +65,9 @@ void free_connections(void);
 
 // For debug purposes
 const char *conn_status_str(tcp_status_t status);
-const char *direction_str(direction_t direction);
+
+// Identify proxy
+int is_proxy_connection(const connection_t *conn);
 
 // Enforcing TCP states' validity
 int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state);
@@ -78,7 +80,8 @@ typedef enum
     STATE_EXPECTING,
     STATE_INITIATING,
     STATE_ONGOING,
-    STATE_CLOSING
+    STATE_CLOSING,
+    STATE_PROXY
 } public_state_t;
 
 // Define connections device operations

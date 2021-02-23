@@ -31,6 +31,8 @@ void reason2str(char *str, const reason_t reason)
         REASON_CASE(REASON_NO_MATCHING_RULE)
         REASON_CASE(REASON_XMAS_PACKET)
         REASON_CASE(REASON_TCP_STREAM_ENFORCE)
+        REASON_CASE(REASON_FTP_DATA_SESSION)
+        REASON_CASE(REASON_TCP_PROXY)
     default:
         sprintf(str, "%d", reason);
     }

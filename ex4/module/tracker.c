@@ -123,6 +123,15 @@ void free_connections(void)
 }
 
 /**
+ * Tells if proxy connection
+ */
+int is_proxy_connection(const connection_t *conn)
+{
+    connection_type_t type = conn->type;
+    return (type == PROXY_HTTP) || (type == PROXY_FTP_CONTROL);
+}
+
+/**
  * returns 0 and updates the state if the tcp packet state is valid
  * returns 1 if the tcp packet state is unvalid
  * returns 2 if the connection has ended
@@ -258,25 +267,6 @@ const char *conn_status_str(tcp_status_t status)
     return "";
 }
 
-/*
- * For debug purposes
- */
-const char *direction_str(direction_t direction)
-{
-    switch (direction)
-    {
-    case DIRECTION_NONE:
-        return "none";
-    case DIRECTION_IN:
-        return "in";
-    case DIRECTION_OUT:
-        return "out";
-    case DIRECTION_ANY:
-        return "any";
-    }
-    return "";
-}
-
 public_state_t state2public(tcp_state_t state)
 {
     switch (state.status)
@@ -298,7 +288,17 @@ const __u8 CAMOUNT_SIZE = sizeof(connections_amount);
 
 void conn2buf(const connection_t *conn, char *buf)
 {
-    public_state_t pub_state = state2public(conn->state);
+    public_state_t pub_state;
+    
+    if (is_proxy_connection(conn))
+    {
+        pub_state = STATE_PROXY;
+    }
+    else
+    {
+        pub_state = state2public(conn->state);
+    }
+    
     VAR2BUF(conn->internal_id.ip);
     VAR2BUF(conn->internal_id.port);
     VAR2BUF(conn->external_id.ip);

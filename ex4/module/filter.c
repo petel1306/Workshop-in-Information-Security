@@ -240,15 +240,12 @@ unsigned int fw_inspect(void *priv, struct sk_buff *skb, const struct nf_hook_st
         return NF_ACCEPT;
     }
     
-    DINFO("Filtering:\nhooknum = %d, type = %d, direction = %s, src_ip = %d.%d.%d.%d, src_port = % d, dst_ip = "
-         "%d.%d.%d.%d, dst_port = % d, protocol = %d",
-         packet.hooknum, packet.type, direction_str(packet.direction), IP_PARTS(packet.src_ip), packet.src_port,
-         IP_PARTS(packet.dst_ip), packet.dst_port, packet.protocol)
+    print_packet(&packet); // Debug
 
     // Routing intended TCP packets for proxy connections
     if (packet.type == PACKET_TYPE_TCP && proxy_route(&packet))
     {
-        log_action(&log_row, NF_ACCEPT, REASON_TCP_PROXY);
+        log_action(&log_row, NF_ACCEPT, REASON_TCP_PROXY);        
         return NF_ACCEPT;
     }
 

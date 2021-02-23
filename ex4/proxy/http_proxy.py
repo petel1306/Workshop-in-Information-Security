@@ -65,6 +65,8 @@ def main():
     # Creating an HTTP proxy server
     sock = HTTPProxy.setup_proxy(SERVER_PORT)
     proxies = []
+    
+    print("Starting")
 
     # Handle connections until ctrl^c is called
     while True:
@@ -76,6 +78,9 @@ def main():
             for proxy in proxies:
                 proxy.join()
             break
+        
+        print("Connection accepted")
+        
         proxy = HTTPProxy(conn, addr)
         proxies.append(proxy)
         proxy.start()

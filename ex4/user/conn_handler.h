@@ -8,7 +8,8 @@ typedef enum
     STATE_EXPECTING,
     STATE_INITIATING,
     STATE_ONGOING,
-    STATE_CLOSING
+    STATE_CLOSING,
+    STATE_PROXY
 } tcp_state_t;
 
 typedef struct

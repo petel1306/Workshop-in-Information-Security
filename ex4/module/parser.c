@@ -50,8 +50,9 @@ void parse_packet(packet_t *packet, struct sk_buff *skb, const struct nf_hook_st
     // Initialize packet
     *packet = empty_packet;
 
-    // Set the skb
+    // Set skb, state
     packet->skb = skb;
+    packet->state = state;
 
     // Set the hook num
     packet->hooknum = state->hook;
@@ -128,4 +129,34 @@ int is_syn_packet(const struct sk_buff *skb)
 {
     struct tcphdr *tcp_header = tcp_hdr(skb);
     return (tcp_header->syn && !tcp_header->ack);
+}
+
+/*
+ * For debug purposes
+ */
+char *direction_str(direction_t direction)
+{
+    switch (direction)
+    {
+    case DIRECTION_NONE:
+        return "none";
+    case DIRECTION_IN:
+        return "in";
+    case DIRECTION_OUT:
+        return "out";
+    case DIRECTION_ANY:
+        return "any";
+    }
+    return "";
+}
+
+/*
+ * For debug purposes
+ */
+void print_packet(packet_t *packet)
+{
+    INFO("Packet:\nhooknum = %d, type = %d, direction = %s, src_ip = %d.%d.%d.%d, src_port = % d, dst_ip = "
+         "%d.%d.%d.%d, dst_port = % d, protocol = %d",
+         packet->hooknum, packet->type, direction_str(packet->direction), IP_PARTS(packet->src_ip), packet->src_port,
+         IP_PARTS(packet->dst_ip), packet->dst_port, packet->protocol)
 }
