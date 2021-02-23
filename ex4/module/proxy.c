@@ -97,8 +97,6 @@ int proxy_route(packet_t *packet)
     struct sk_buff *skb = packet->skb;
     struct iphdr *iph = ip_hdr(skb);
     struct tcphdr *tcph = tcp_hdr(skb);
-    
-    int is_proxy = 0;
 
     if (packet->hooknum == NF_INET_PRE_ROUTING)
     {
@@ -126,7 +124,7 @@ int proxy_route(packet_t *packet)
                 // Fix the checksum
                 fix_checksum(packet->skb);
 
-                is_proxy = 1;
+                return 1;
             }
         }
         else
@@ -150,7 +148,7 @@ int proxy_route(packet_t *packet)
                     // Fix the checksum
                     fix_checksum(packet->skb);
 
-                    is_proxy = 1;
+                    return 1;
                 }
             }
         }
@@ -178,7 +176,7 @@ int proxy_route(packet_t *packet)
                     // Fix the checksum
                     fix_checksum(packet->skb);
 
-                    is_proxy = 1;
+                    return 1;
                 }
             }
         }
@@ -197,23 +195,18 @@ int proxy_route(packet_t *packet)
                 DINFO("p2c packet")
 
                 // Fake source
-                iph->saddr = htonl(ext_id.ip);
-                tcph->source = htons(ext_id.port);
+                iph->saddr = htonl(proxy->external_id.ip);
+                tcph->source = htons(proxy->external_id.port);
 
                 // Fix the checksum
                 fix_checksum(packet->skb);
 
-                is_proxy = 1;
+                return 1;
             }
         }
     }
     
-    if (is_proxy) {
-        parse_packet(packet, packet->skb, packet->state);
-        print_packet(packet);
-    }
-    
-    return is_proxy;
+    return 0;
 }
 
 int escape_ftp_data(packet_t *packet, connection_t *conn)
@@ -233,7 +226,9 @@ const __u16 FTP_ADD_SIZE = 2 * sizeof(__be32) + sizeof(__be16);
 ssize_t set_proxy_port(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
     id_t client_id;
-    __be32 proxy_port;
+    __be32 client_ip;
+    __be16 client_port;
+    __be16 proxy_port;
     connection_t *proxy;
 
     if (count < PROXY_SET_SIZE)
@@ -242,9 +237,12 @@ ssize_t set_proxy_port(struct device *dev, struct device_attribute *attr, const 
     }
 
     // Should get (client_ip, client_port, proxy_port)
-    BUF2VAR(client_id.ip);
-    BUF2VAR(client_id.port);
+    BUF2VAR(client_ip);
+    BUF2VAR(client_port);
     BUF2VAR(proxy_port);
+    
+    client_id.ip = ntohl(client_ip);
+    client_id.port = client_port;
 
     DINFO("set_proxy_port: client_ip=%d.%d.%d.%d, client_port=%d, proxy_port=%d", IP_PARTS(client_id.ip),
           client_id.port, proxy_port)
@@ -277,17 +275,17 @@ ssize_t add_ftp_data(struct device *dev, struct device_attribute *attr, const ch
     BUF2VAR(server_ip);
     BUF2VAR(ftp_port);
 
-    DINFO("Add_ftp_data: client_ip=%d.%d.%d.%d, server_ip=%d.%d.%d.%d, ftp_data_port=%d", IP_PARTS(ftp_ip),
-          IP_PARTS(server_ip), ftp_port);
-
     // Add an FTP data connection
     conn = add_blank_connection();
 
     // Set identifiers
-    conn->internal_id.ip = ftp_ip;
+    conn->internal_id.ip = ntohl(ftp_ip);
     conn->internal_id.port = ftp_port;
-    conn->external_id.ip = server_ip;
+    conn->external_id.ip = ntohl(server_ip);
     conn->external_id.port = 0; // Wildcard - match to any port
+    
+    DINFO("Add_ftp_data: client_ip=%d.%d.%d.%d,  client_port=%d, server_ip=%d.%d.%d.%d, server_port=%d",
+        IP_PARTS(conn->internal_id.ip), conn->internal_id.port, IP_PARTS(conn->external_id.ip), conn->external_id.port);
 
     // Initialize connection state
     conn->state.status = PRESYN;

@@ -28,9 +28,11 @@ class Proxy(threading.Thread):
 
     def send_port(self, proxy_port):
         """ Sends the port of the proxy client to the firewall """
+        
+        print('proxy_port: ', proxy_port)
 
         client_ip = socket.inet_aton(self.src[0])
-        client_port = socket.inet_aton(self.src[1])
+        client_port = self.src[1]
 
         if sys.byteorder == 'little':
             buf = client_ip + struct.pack('<HH', client_port, proxy_port)  # little-endian byte order
@@ -44,13 +46,13 @@ class Proxy(threading.Thread):
         """ Gets the destination of the connection from the firewall (the actual server details) """
         p = subprocess.run([self.user_handler, self.conn_arg], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                            text=True)
-        print(p.stdout)  # debug
         connections = p.stdout.splitlines()[1:]
+        print('src: ', self.src)
         for connection in connections:
-            c_ip, s_ip, c_port, s_port = connection.split()
-            if c_ip == self.src[0] and c_port == self.src[1]:
-                self.dst = (s_ip, s_port)
-        raise Exception("Can not find destination address")
+            c_ip, s_ip, c_port, s_port, status = connection.split()
+            if c_ip == self.src[0] and int(c_port) == self.src[1]:
+                self.dst = (s_ip, int(s_port))
+        print('dst: ', self.dst)
 
     def start_proxy(self):
         # Creating a TCP client
@@ -60,7 +62,6 @@ class Proxy(threading.Thread):
 
         # Send the dynamically allocated port to the firewall
         srv_addr = sock.getsockname()
-        print(srv_addr) # debug
         self.send_port(srv_addr[1])
 
         # Connect to the actual server

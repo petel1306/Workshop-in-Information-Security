@@ -42,8 +42,8 @@ typedef enum
 
 typedef struct
 {
-    id_t internal_id; // internal id
-    id_t external_id; // external id
+    id_t internal_id;
+    id_t external_id;
     tcp_state_t state;
     connection_type_t type;
     __be16 proxy_port;
