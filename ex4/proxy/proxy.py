@@ -27,17 +27,16 @@ class Proxy(threading.Thread):
         self.server_thread = None
 
     def send_port(self, proxy_port):
-        """ Sends the port of the proxy client to the firewall """
+        """ Sends to the firewall client's proxy port """
         
-        print('proxy_port: ', proxy_port)
+        print('Proxy: port = {}'.format(proxy_port))
 
         client_ip = socket.inet_aton(self.src[0])
         client_port = self.src[1]
-
-        if sys.byteorder == 'little':
-            buf = client_ip + struct.pack('<HH', client_port, proxy_port)  # little-endian byte order
-        else:
-            buf = client_ip + struct.pack('>HH', client_port, proxy_port)  # big-endian byte order
+        
+        # endianness byte order considerations
+        pack = struct.pack('<HH', client_port, proxy_port) if sys.byteorder == 'little' else struct.pack('>HH', client_port, proxy_port)
+        buf = client_ip + pack
 
         with open(self.proxy_dev, 'wb') as file:
             file.write(buf)

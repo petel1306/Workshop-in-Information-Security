@@ -244,8 +244,7 @@ ssize_t set_proxy_port(struct device *dev, struct device_attribute *attr, const 
     client_id.ip = ntohl(client_ip);
     client_id.port = client_port;
 
-    DINFO("set_proxy_port: client_ip=%d.%d.%d.%d, client_port=%d, proxy_port=%d", IP_PARTS(client_id.ip),
-          client_id.port, proxy_port)
+    DINFO("set_proxy_port: client_ip=%d.%d.%d.%d, client_port=%d, proxy_port=%d", IP_PARTS(client_id.ip), client_id.port, proxy_port)
 
     proxy = find_proxy_by_client(client_id);
     if (proxy == NULL)

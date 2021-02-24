@@ -14,21 +14,28 @@ class FTPProxy(Proxy):
     ftp_dev = '/sys/class/fw/proxy/add_ftp'
 
     def pass_ftp_data(self, ftp_ip, ftp_port):
+        """ Sends to the firewall client (ip, port) of the new ftp data session """
+        
+        print('FTP data: ip = {}, port = {}'.format(ftp_ip, ftp_port)
+        
         client_ip = socket.inet_aton(ftp_ip)
         server_ip = socket.inet_aton(self.dst[0])
-
-        if sys.byteorder == 'little':
-            buf = client_ip + server_ip + struct.pack('<H', ftp_port)  # little-endian byte order
-        else:
-            buf = client_ip + server_ip + struct.pack('>H', ftp_port)  # big-endian byte order
+        
+        # endianness byte order considerations
+        pack = struct.pack('<H', ftp_port) if sys.byteorder == 'little' else struct.pack('>H', ftp_port)
+        buf = client_ip + server_ip + pack
 
         with open(self.ftp_dev, 'wb') as file:
             file.write(buf)
 
     def parse_ftp(self):
-        port_command = re.findall('PORT (.*)\r\n')
+        
+        port_command = re.findall('PORT (\S+)')
         if not port_command:
             return
+        
+        print(port_command) # debug
+        
         i1, i2, i3, i4, p1, p2 = port_command[0].split(',')
         ip = '.'.join((i1, i2, i3, i4))
         port = 256 * int(p1) + int(p2)
@@ -47,7 +54,7 @@ class FTPProxy(Proxy):
         while self.is_alive() and not self.done:
             response = self.client_sock.recv(65535)
             if response:
-                self.parse_ftp()
+                self.parse_ftp(response)
                 self.server_sock.sendall(response)
             else:
                 self.done = True
