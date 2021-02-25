@@ -14,7 +14,7 @@ cd ../user
 make clean
 make
 cd ..
-sudo chmod o+rw /dev/fw_log
-sudo chmod -R o+rw /sys/class/fw
+# sudo chmod o+rw /dev/fw_log
+# sudo chmod -R o+rw /sys/class/fw
 ./load_rules.sh
 ./show_rules.sh

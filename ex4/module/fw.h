@@ -8,8 +8,11 @@
 #include <linux/module.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/slab.h>
+#include <linux/string.h>
 #include <linux/tcp.h>
+#include <linux/time.h>
 #include <linux/udp.h>
+#include <net/tcp.h>
 
 unsigned int get_info_counter(void);
 
@@ -21,7 +24,7 @@ unsigned int get_info_counter(void);
 /*
  * Print debug messages to the user (in case DEBUG is defined)
  */
-// #define DEBUG
+#define DEBUG
 
 #ifdef DEBUG
 #define DCOM(command) command // Debug command
@@ -98,7 +101,9 @@ typedef enum
     REASON_FW_INACTIVE = -1,
     REASON_NO_MATCHING_RULE = -2,
     REASON_XMAS_PACKET = -4,
-    REASON_TCP_STREAM_ENFORCE = -8
+    REASON_TCP_STREAM_ENFORCE = -8,
+    REASON_FTP_DATA_SESSION = -16,
+    REASON_TCP_PROXY = -32
 } reason_t;
 
 // logging

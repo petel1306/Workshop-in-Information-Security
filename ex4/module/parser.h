@@ -6,8 +6,11 @@ In this module we parse a socket buffer (packet).
 
 #include "fw.h"
 
-#define OUT_NET_DEVICE_NAME "enp0s8"
-#define IN_NET_DEVICE_NAME "enp0s9"
+#define INT_NET_DEVICE_NAME "enp0s8"
+#define EXT_NET_DEVICE_NAME "enp0s9"
+
+#define FW_INT_ADRR 167837955 // 10.1.1.3
+#define FW_EXT_ADRR 167838211 // 10.1.2.3
 
 // Classifies packet's type
 typedef enum
@@ -15,9 +18,9 @@ typedef enum
     PACKET_TYPE_ICMP,
     PACKET_TYPE_UDP,
     PACKET_TYPE_TCP,
+    PACKET_TYPE_FW,
     PACKET_TYPE_LOOPBACK,
     PACKET_TYPE_OTHER_PROTOCOL,
-    PACKET_TYPE_XMAS,
 } packet_type_t;
 
 // Holds packet's fields.
@@ -32,8 +35,16 @@ typedef struct
     __u8 protocol;   // values from: prot_t
     ack_t ack;       // values from: ack_t
     packet_type_t type;
+    unsigned int hooknum;
+    struct sk_buff *skb;
+    const struct nf_hook_state *state;
 } packet_t;
 
-void parse_packet(packet_t *packet, const struct sk_buff *skb, const struct nf_hook_state *state);
+void parse_packet(packet_t *packet, struct sk_buff *skb, const struct nf_hook_state *state);
+int is_xmas_packet(const struct sk_buff *skb);
+int is_syn_packet(const struct sk_buff *skb);
+
+char *direction_str(direction_t direction);
+void print_packet(packet_t *packet);
 
 #endif

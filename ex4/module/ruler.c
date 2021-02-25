@@ -81,12 +81,13 @@ void buf2rule(rule_t *rule, const char *buf)
 ssize_t show_rules(struct device *dev, struct device_attribute *attr, char *buf)
 {
     rule_t *rule;
-    DINFO("Showing rules")
-
+    
     if (rule_table.active == INACTIVE)
     {
         return 0;
     }
+    
+    DINFO("Showing %d rules", rule_table.amount)
 
     // Storing the amount of rules in the buffer first
     VAR2BUF(rule_table.amount);
@@ -116,6 +117,7 @@ __u8 is_valid_rule(rule_t *rule)
     __u8 valid_ack = rule->ack == ACK_NO || rule->ack == ACK_YES || rule->ack == ACK_ANY;
     __u8 valid_action = rule->action == NF_DROP || rule->action == NF_ACCEPT;
 
+    /*
     DINFO("%s", rule->rule_name)
     DSHOW(rule->direction)
     DSHOW(rule->src_ip)
@@ -127,6 +129,7 @@ __u8 is_valid_rule(rule_t *rule)
     DSHOW(rule->dst_port)
     DSHOW(rule->ack)
     DSHOW(rule->action)
+    */
 
     return valid_direction && valid_prefix && valid_ports && valid_protocol && valid_ack && valid_action;
 }
@@ -135,13 +138,10 @@ ssize_t store_rules(struct device *dev, struct device_attribute *attr, const cha
 {
     rule_t *rule;
 
-    DINFO("Storing rules")
-
     // Getting the amount of rules first
     BUF2VAR(rule_table.amount);
 
-    DSHOW(rule_table.amount)
-    DSHOW(count)
+    DINFO("Storing %d rules", rule_table.amount)
 
     if (rule_table.amount > MAX_RULES || count != rule_table.amount * RULE_SIZE + sizeof(rule_table.amount))
     {

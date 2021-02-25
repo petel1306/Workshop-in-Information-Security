@@ -1,8 +1,10 @@
 #include "tracker.h"
 #include "fw.h"
 
-static LIST_HEAD(ctable);
-static __u32 connections_amount = 0;
+#define ID_PORT_ANY 0
+
+LIST_HEAD(ctable);
+__u32 connections_amount = 0;
 
 direction_t flip_direction(direction_t direction)
 {
@@ -17,44 +19,82 @@ direction_t flip_direction(direction_t direction)
     return direction;
 }
 
-void add_connection(packet_t *packet)
+void get_ids(const packet_t *packet, id_t *int_id, id_t *ext_id)
 {
-    connection_t *new_connection = (connection_t *)kmalloc(sizeof(connection_t), GFP_KERNEL);
-    new_connection->state.status = SYN;
-    new_connection->state.expected_direction = flip_direction(packet->direction);
     if (packet->direction == DIRECTION_OUT)
     {
-        new_connection->internal_id.ip = packet->src_ip;
-        new_connection->internal_id.port = packet->src_port;
-        new_connection->external_id.ip = packet->dst_ip;
-        new_connection->external_id.port = packet->dst_port;
+        int_id->ip = packet->src_ip;
+        int_id->port = packet->src_port;
+        ext_id->ip = packet->dst_ip;
+        ext_id->port = packet->dst_port;
     }
     if (packet->direction == DIRECTION_IN)
     {
-        new_connection->internal_id.ip = packet->dst_ip;
-        new_connection->internal_id.port = packet->dst_port;
-        new_connection->external_id.ip = packet->src_ip;
-        new_connection->external_id.port = packet->src_port;
+        int_id->ip = packet->dst_ip;
+        int_id->port = packet->dst_port;
+        ext_id->ip = packet->src_ip;
+        ext_id->port = packet->src_port;
     }
+}
 
-    list_add_tail(&new_connection->list_node, &ctable);
+/**
+ * Checks if two connection id matches.
+ * Port 0 is a wildcard (i.e. match to any port)
+ */
+int is_id_match(const id_t id1, const id_t id2)
+{
+    int ip_match = (id1.ip == id2.ip);
+    int port_match = (id1.port == id2.port) || id1.port == ID_PORT_ANY || id2.port == ID_PORT_ANY;
+    return ip_match && port_match;
+}
+
+/**
+ * Add a blank connection
+ */
+connection_t *add_blank_connection(void)
+{
+
+    // Allocate connection
+    connection_t *conn = (connection_t *)kmalloc(sizeof(connection_t), GFP_KERNEL);
+
+    // Add connection to the table
+    list_add_tail(&conn->list_node, &ctable);
     connections_amount++;
+
+    return conn;
+}
+
+/**
+ * Add a new connection
+ */
+connection_t *add_connection(const packet_t *packet)
+{
+    connection_t *conn = add_blank_connection();
+
+    // Get ids from the packet
+    get_ids(packet, &conn->internal_id, &conn->external_id);
+
+    // Initialize connection state
+    conn->state.status = PRESYN;
+    conn->state.expected_direction = DIRECTION_ANY;
+
+    // Non-proxy connection
+    conn->type = NONE_PROXY;
+    conn->proxy_port = 1;
+
+    return conn;
 }
 
 connection_t *find_connection(packet_t *packet)
 {
     connection_t *conn;
+    id_t packet_int_id, packet_ext_id;
+    get_ids(packet, &packet_int_id, &packet_ext_id);
+
     list_for_each_entry(conn, &ctable, list_node)
     {
-        if (packet->direction == DIRECTION_OUT && conn->internal_id.ip == packet->src_ip &&
-            conn->internal_id.port == packet->src_port && conn->external_id.ip == packet->dst_ip &&
-            conn->external_id.port == packet->dst_port)
-        {
-            return conn;
-        }
-        if (packet->direction == DIRECTION_IN && conn->internal_id.ip == packet->dst_ip &&
-            conn->internal_id.port == packet->dst_port && conn->external_id.ip == packet->src_ip &&
-            conn->external_id.port == packet->src_port)
+
+        if (is_id_match(conn->internal_id, packet_int_id) && is_id_match(conn->external_id, packet_ext_id))
         {
             return conn;
         }
@@ -82,17 +122,39 @@ void free_connections(void)
     connections_amount = 0;
 }
 
-/*
+/**
+ * Tells if proxy connection
+ */
+int is_proxy_connection(const connection_t *conn)
+{
+    connection_type_t type = conn->type;
+    return (type == PROXY_HTTP) || (type == PROXY_FTP_CONTROL);
+}
+
+/**
  * returns 0 and updates the state if the tcp packet state is valid
  * returns 1 if the tcp packet state is unvalid
  * returns 2 if the connection has ended
  */
 int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_state_t *state)
 {
+    if (tcph->rst)
+    {
+        return 2;
+    }
     if (packet_direction & state->expected_direction)
     {
         switch (state->status)
         {
+        case PRESYN:
+            if (tcph->syn && !tcph->ack) // syn
+            {
+                state->status = SYN;
+                state->expected_direction = flip_direction(packet_direction);
+                return 0;
+            }
+            return 1;
+
         case SYN:
             if (tcph->syn && tcph->ack) // syn ack
             {
@@ -103,8 +165,8 @@ int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_s
             return 1;
 
         case SYN_ACK:
-            if (tcph->ack)
-            { // ack
+            if (tcph->ack) // ack
+            {
                 state->status = ESTABLISHED;
                 state->expected_direction = DIRECTION_ANY;
                 return 0;
@@ -120,7 +182,8 @@ int enforce_state(const struct tcphdr *tcph, direction_t packet_direction, tcp_s
             return 0;
 
         case FIN1:
-            if (tcph->fin && tcph->ack) {
+            if (tcph->fin && tcph->ack)
+            {
                 state->status = A_FIN2;
                 state->expected_direction = flip_direction(packet_direction);
                 return 0;
@@ -182,6 +245,8 @@ const char *conn_status_str(tcp_status_t status)
 {
     switch (status)
     {
+    case PRESYN:
+        return "pre-SYN";
     case SYN:
         return "SYN sent";
     case SYN_ACK:
@@ -202,39 +267,12 @@ const char *conn_status_str(tcp_status_t status)
     return "";
 }
 
-/*
- * For debug purposes
- */
-const char *direction_str(direction_t direction)
-{
-    switch (direction)
-    {
-    case DIRECTION_NONE:
-        return "none";
-    case DIRECTION_IN:
-        return "in";
-    case DIRECTION_OUT:
-        return "out";
-    case DIRECTION_ANY:
-        return "any";
-    }
-    return "";
-}
-
-/*
- * Status to be shown to the user
- */
-typedef enum
-{
-    STATE_INITIATING,
-    STATE_ONGOING,
-    STATE_CLOSING
-} public_state_t;
-
 public_state_t state2public(tcp_state_t state)
 {
     switch (state.status)
     {
+    case PRESYN:
+        return STATE_EXPECTING;
     case SYN:
     case SYN_ACK:
         return STATE_INITIATING;
@@ -250,7 +288,17 @@ const __u8 CAMOUNT_SIZE = sizeof(connections_amount);
 
 void conn2buf(const connection_t *conn, char *buf)
 {
-    public_state_t pub_state = state2public(conn->state);
+    public_state_t pub_state;
+    
+    if (is_proxy_connection(conn))
+    {
+        pub_state = STATE_PROXY;
+    }
+    else
+    {
+        pub_state = state2public(conn->state);
+    }
+    
     VAR2BUF(conn->internal_id.ip);
     VAR2BUF(conn->internal_id.port);
     VAR2BUF(conn->external_id.ip);
