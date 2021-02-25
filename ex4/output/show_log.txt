@@ -1,3 +1,0 @@
-timestamp            src_ip           dst_ip           src_port  dst_port  protocol  action  reason                    count
-12/23/2020 13:39:24  10.1.2.2         10.1.1.1         0         0         ICMP      accept  6                         3
-12/23/2020 13:39:24  10.1.1.1         10.1.2.2         0         0         ICMP      accept  6                         3
