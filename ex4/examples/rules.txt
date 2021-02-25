@@ -7,3 +7,4 @@ telnet2 in any 10.0.1.1/24 TCP 23 >1023 yes accept
 ping any any any ICMP any any any accept
 tcp in any any TCP any >1023 any accept
 http out any any TCP any 80 any accept
+ftp out any any TCP any 21 any accept

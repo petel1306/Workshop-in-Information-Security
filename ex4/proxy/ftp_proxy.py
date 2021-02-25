@@ -16,7 +16,7 @@ class FTPProxy(Proxy):
     def pass_ftp_data(self, ftp_ip, ftp_port):
         """ Sends to the firewall client (ip, port) of the new ftp data session """
         
-        print('FTP data: ip = {}, port = {}'.format(ftp_ip, ftp_port)
+        print('FTP data: ip = {}, port = {}'.format(ftp_ip, ftp_port))
         
         client_ip = socket.inet_aton(ftp_ip)
         server_ip = socket.inet_aton(self.dst[0])
@@ -28,34 +28,31 @@ class FTPProxy(Proxy):
         with open(self.ftp_dev, 'wb') as file:
             file.write(buf)
 
-    def parse_ftp(self):
+    def extract_port_command(self, message):
+        ''' Extracts the port command from a message and pass it (if exists)'''
         
-        port_command = re.findall('PORT (\S+)')
-        if not port_command:
-            return
+        port_command = re.findall('PORT (\S+)', message)
         
-        print(port_command) # debug
-        
-        i1, i2, i3, i4, p1, p2 = port_command[0].split(',')
-        ip = '.'.join((i1, i2, i3, i4))
-        port = 256 * int(p1) + int(p2)
-        self.pass_ftp_data(ip, port)
+        if port_command:
+            i1, i2, i3, i4, p1, p2 = port_command[0].split(',')
+            ip = '.'.join((i1, i2, i3, i4))
+            port = 256 * int(p1) + int(p2)
+            self.pass_ftp_data(ip, port)
 
     def client_logic(self):
         while self.is_alive() and not self.done:
-            request = self.client_sock.recv(65535)
+            request = self.collect_message(self.client_sock)
             if request:
-                self.parse_ftp(request)
-                self.server_sock.sendall(request)
+                self.server_sock.sendall(request.encode())
+                self.extract_port_command(request)
             else:
                 self.done = True
 
     def server_logic(self):
         while self.is_alive() and not self.done:
-            response = self.client_sock.recv(65535)
+            response = self.collect_message(self.server_sock)
             if response:
-                self.parse_ftp(response)
-                self.server_sock.sendall(response)
+                self.client_sock.sendall(response.encode())
             else:
                 self.done = True
 
@@ -64,6 +61,8 @@ def main():
     # Creating an HTTP proxy server
     sock = FTPProxy.setup_proxy(SERVER_PORT)
     proxies = []
+    
+    print("\nStarting")
 
     # Handle connections until ctrl^c is called
     while True:
@@ -75,11 +74,14 @@ def main():
             for proxy in proxies:
                 proxy.join()
             break
+        
+        print("\nConnection accepted")
+        
         proxy = FTPProxy(conn, addr)
         proxies.append(proxy)
         proxy.start()
 
-    print("Finished")
+    print("\nFinished")
 
 
 if __name__ == "__main__":

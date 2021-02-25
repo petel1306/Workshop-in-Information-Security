@@ -3,6 +3,7 @@ import socket
 import struct
 import sys
 import subprocess
+import os
 
 
 class Proxy(threading.Thread):
@@ -43,7 +44,12 @@ class Proxy(threading.Thread):
 
     def get_dest(self):
         """ Gets the destination of the connection from the firewall (the actual server details) """
-        p = subprocess.run([self.user_handler, self.conn_arg], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        
+        dir_path = os.path.dirname(os.path.abspath(__file__))
+        user_path = dir_path + '/' + self.user_handler
+        print('User path: {}'.format(user_path))
+        
+        p = subprocess.run([user_path, self.conn_arg], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                            text=True)
         connections = p.stdout.splitlines()[1:]
         print('src: ', self.src)
@@ -66,6 +72,20 @@ class Proxy(threading.Thread):
         # Connect to the actual server
         self.get_dest()
         sock.connect(self.dst)
+        
+    def collect_message(self, sock):
+        ''' Collects the message from a socket'''
+        
+        message = ''
+        chunk_size = 512
+        
+        while True:
+            chunk = sock.recv(chunk_size)
+            message += chunk.decode()
+            if len(chunk) < chunk_size:
+                break
+            
+        return message
 
     def client_logic(self):
         pass

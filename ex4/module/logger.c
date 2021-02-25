@@ -4,7 +4,7 @@ In this module the packet logging is done.
 #include "logger.h"
 #include "fw.h"
 
-#define MAX_POOL 20
+// #define MAX_POOL 20
 
 typedef struct
 {
@@ -18,35 +18,35 @@ static LIST_HEAD(log); // The head of log linked list
 __u32 rows_amount = 0; // The amount of log rows/ entries
 
 // Implement a pool of free memory instead allocate each time
-static log_entry_t *log_pool;
-static __u8 pool_amount = 0;
+// static log_entry_t *log_pool;
+// static __u8 pool_amount = 0;
 
 /**
  * Obtain an allocated log_entry_t from the pool
  */
-static log_entry_t *allocate_entry(void)
-{
-    if (pool_amount == 0)
-    {
-        log_pool = (log_entry_t *)kmalloc(MAX_POOL * sizeof(log_entry_t), GFP_KERNEL);
-        pool_amount = MAX_POOL;
-    }
-    pool_amount--;
-    return log_pool + pool_amount; // Same as &log_pool[pool_amount]
-}
+// static log_entry_t *allocate_entry(void)
+// {
+//     if (pool_amount == 0)
+//     {
+//         log_pool = (log_entry_t *)kmalloc(MAX_POOL * sizeof(log_entry_t), GFP_KERNEL);
+//         pool_amount = MAX_POOL;
+//     }
+//     pool_amount--;
+//     return log_pool + pool_amount; // Same as &log_pool[pool_amount]
+// }
 
 /**
  * Empties the log_pool
  */
-static void empty_pool(void)
-{
-    log_entry_t *pool_member;
-    for (pool_member = log_pool; pool_member < log_pool + pool_amount; pool_member++)
-    {
-        kfree(pool_member);
-    }
-    pool_amount = 0;
-}
+// static void empty_pool(void)
+// {
+//     log_entry_t *pool_member;
+//     for (pool_member = log_pool; pool_member < log_pool + pool_amount; pool_member++)
+//     {
+//         kfree(pool_member);
+//     }
+//     pool_amount = 0;
+// }
 
 /**
  * Checks if two log_row are match
@@ -85,7 +85,8 @@ void log_action(log_row_t *log_row, __u8 action, reason_t reason)
     }
 
     // No entry match. Adding a new log entry
-    entry = allocate_entry();
+    entry = (log_entry_t *)kmalloc(sizeof(log_entry_t), GFP_KERNEL);
+//     entry = allocate_entry();
     entry->log_row = *log_row;
     list_add_tail(&entry->list_node, &log);
     rows_amount++;
@@ -110,7 +111,7 @@ void log_cleanup(void)
 void free_log(void)
 {
     log_cleanup();
-    empty_pool();
+//     empty_pool();
 }
 
 // Implementing log device operations

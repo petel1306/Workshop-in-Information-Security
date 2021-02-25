@@ -271,14 +271,14 @@ static int __init hw4secws_init(void)
     if (register_rules_dev() != 0)
     {
         INFO("Failed to register rule devices")
-        goto failed_log_reg;
+        goto failed_rule_reg;
     }
 
     // Register log device
     if (register_log_dev() != 0)
     {
         INFO("Failed to register log devices")
-        goto failed_rule_reg;
+        goto failed_log_reg;
     }
 
     // Register connections device
