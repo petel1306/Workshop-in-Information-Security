@@ -1,0 +1,4 @@
+timestamp			src_ip			dst_ip			src_port	dst_port	protocol	action	reason				count
+03/04/2016 14:05:34		10.0.2.15		187.124.74.89		5748		80		tcp		accept	0				8
+03/04/2016 14:14:32		187.124.74.89		10.0.2.15		80		5748		tcp		accept	REASON_NO_MATCHING_RULE		10
+03/04/2016 14:45:00		127.0.0.1		127.0.0.1		0		0		icmp		drop	5				41
