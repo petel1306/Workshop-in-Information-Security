@@ -26,7 +26,3 @@ def block_zookeeper_command(message):
             return False
         else:
             return True
-
-if __name__ == '__main__':
-    text = 'cons bla'
-    print(block_zookeeper_command(text))

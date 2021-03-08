@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from proxy import Proxy
+from dlp import detect_c_code
 import socket
 import re
 
@@ -27,7 +28,10 @@ class HTTPProxy(Proxy):
         while self.is_alive() and not self.done:
             request = self.collect_message(self.client_sock)
             if request:
-                self.server_sock.sendall(request.encode())
+                if detect_c_code(request):
+                    print("C code was detected")
+                else:
+                    self.server_sock.sendall(request.encode())
             else:
                 self.done = True
 

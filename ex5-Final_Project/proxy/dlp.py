@@ -1,3 +1,4 @@
+# DLP blade for C code detection
 
 declarators = ['char', 'int', 'short', 'float', 'double', 'long', 'auto', 'volatile', 'const', 'unsigned', 'signed',
                'struct', 'enum', 'union', 'extern', 'register', 'inline', 'static']
@@ -88,6 +89,3 @@ def detect_c_code(text):
         return False
     return (c_blocks_amount >= c_blocks_amount_thresh) or (c_lines_amount >= c_lines_amount_thresh)\
            or (c_lines_frac >= c_lines_frac_thresh)
-
-if __name__ == '__main__':
-    print(detect_c_code(get_text(r'D:\security_workshop\git\ex4\module\filter.c')))
