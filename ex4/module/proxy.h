@@ -11,7 +11,7 @@ In this module we manage the proxy connections.
 #define FTP_PROXY_PORT 210
 
 // Proxy kernel operations
-void setup_proxy(packet_t *packet);
+connection_t *find_proxy_by_client(id_t client_id);
 connection_t *find_proxy_by_port(__be16 proxy_port);
 
 // Proxy inspecting operations
